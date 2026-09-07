@@ -1,9 +1,13 @@
-# MORI 森花手作
+# 貳恭 ER GONG — brand website preview
 
-Traditional Chinese storefront homepage design inspired by the handmade-accessories category of https://juaccessories.com/. MORI is a temporary demonstration brand. All product imagery, descriptions, specifications, prices and the brand story are illustrative content.
+Adapted from the user-supplied `index_1.html`, preserving the orange/black comic visual direction, brand character, SVG package art, product descriptions, prices and contact links. Replaces the initial MORI example within the same Site identity.
 
-This is a static Site. The authored entrypoint is `dist/index.html`; styling and interactions live in `dist/style.css` and `dist/app.js`. No dependency installation or compile step is required. The hosting manifest identifies the canonical Site.
+The authored static entrypoint is `dist/index.html`, with `dist/style.css` and `dist/app.js`. No installation or build is required.
 
-Implemented: responsive homepage, product categories, product detail dialogs, session-only favorites, quantity controls and a session-only shopping bag with correct subtotals. There is no account system, checkout, payment, order submission or durable storage. Favorites and bag contents reset when the page reloads.
+Includes homepage, product catalog, categories, search, favorites, variants, stock-aware cart, shipping-cost calculation, delivery-form preview, order-detail preview, brand/about content and a local admin-interface demonstration.
 
-Replace the temporary brand, demo product data in `dist/app.js`, brand story, and generated photos with the owner's content before commercial use. Image sources are recorded in `ASSETS.md` after integration.
+Products, settings, cart and favorites save only in the current browser via localStorage. They do not change canonical Site source or sync between customers. Trial delivery information and trial orders remain in memory and are cleared by reload. The preview passcode from the supplied artifact is a UI demonstration, not real authentication. The Site itself remains restricted by Sites owner-only access.
+
+No real orders, email, payment, inventory reservation, logistics, shared database or production admin authentication are connected. The UI explicitly labels these limits. A future commerce backend must implement server-side authorization, authoritative product/pricing/stock validation, durable orders and actual provider integrations before accepting real purchases.
+
+All product claims and contact URLs originate in the supplied file; no new real stock or packaging photos were invented.

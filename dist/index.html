@@ -1,95 +1,64 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#faf7f2">
-  <meta name="description" content="MORI 森花手作，以花為靈感的手作飾品。探索花朵髮夾、心形髮飾與乾燥花小物，收藏日常裡的小小喜歡。">
-  <title>MORI 森花手作 — 把小小的花園，戴進日常</title>
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Sans+TC:wght@400;500;600&family=Noto+Serif+TC:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <script src="app.js" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貳恭 ER GONG｜濕式牛肉乾</title>
+<meta name="theme-color" content="#F26A21">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<meta name="description" content="貳恭 ER GONG 濕式牛肉乾。整塊牛腱手切、低溫濕式滷製，咬得到肉纖維的濕潤口感。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
-    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
-    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></symbol>
-    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 7h14l1 14H4L5 7Zm3 0V5a4 4 0 0 1 8 0v2"/></symbol>
-    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
-    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
-    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
-    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
-  </defs></svg>
 
-  <div class="announcement"><span aria-hidden="true">✳</span> 每一件小小的喜歡，都值得被珍藏 <span aria-hidden="true">✳</span></div>
-  <header class="site-header">
-    <div class="header-inner">
-      <button class="icon-button menu-toggle" aria-label="開啟選單" aria-expanded="false" aria-controls="main-nav"><svg><use href="#i-menu"/></svg></button>
-      <a class="brand" href="#" aria-label="MORI 森花手作首頁"><span class="brand-word">mori<span class="brand-dot">.</span></span><span class="brand-caption">森花手作</span></a>
-      <nav id="main-nav" class="main-nav" aria-label="主要導覽">
-        <a href="#collection" class="nav-link">所有作品</a><a href="#story" class="nav-link">關於森花</a><a href="#care" class="nav-link">飾品小筆記</a>
-      </nav>
-      <div class="header-actions">
-        <button class="icon-button favorites-toggle" aria-label="查看收藏作品" aria-pressed="false"><svg><use href="#i-heart"/></svg><span class="favorite-count sr-only">0 件收藏</span></button>
-        <button class="bag-toggle" aria-label="開啟購物袋，目前 0 件"><svg><use href="#i-bag"/></svg><span class="bag-label">購物袋</span><span class="bag-count">0</span></button>
-      </div>
+<div class="preview-notice">品牌網站預覽 · 尚未開放線上下單與付款</div>
+<header class="bar">
+  <div class="wrap bar__in">
+    <button class="logo" onclick="go('home')" aria-label="貳恭首頁">
+      <span class="logo__mark">貳</span>
+      <span class="logo__tx"><b>貳恭 濕式牛肉乾</b><span class="en">ER GONG</span></span>
+    </button>
+    <nav class="main" id="nav" aria-label="主要導覽">
+      <button data-v="home" onclick="go('home')">首頁</button>
+      <button data-v="shop" onclick="go('shop')">全部商品</button>
+      <button data-v="about" onclick="go('about')">關於貳恭</button>
+      <button data-v="terms" onclick="go('terms')">購買須知</button>
+    </nav>
+    <div class="bar__act">
+      <button class="iconbtn menubtn" onclick="toggleMenu()" aria-label="開啟選單" aria-controls="nav" aria-expanded="false">☰</button>
+      <button class="iconbtn" onclick="openSearch()" aria-label="搜尋商品">⌕</button>
+      <button class="iconbtn" onclick="go('cart')" aria-label="購物車">🛒<span class="badge hidden" id="cartBadge">0</span></button>
     </div>
-  </header>
+  </div>
+</header>
 
-  <main>
-    <section class="hero section-shell" aria-labelledby="hero-title">
-      <div class="hero-copy">
-        <div class="eyebrow"><span class="short-rule"></span> LITTLE THINGS, LOVINGLY MADE</div>
-        <h1 id="hero-title">把小小的花園，<br>戴進<span class="title-accent">日常。</span></h1>
-        <p class="hero-description">一朵花、一點手作的溫度，<br>陪你收藏每個平凡又閃亮的時刻。</p>
-        <a href="#collection" class="button button-primary">找到你的小小喜歡 <svg><use href="#i-arrow"/></svg></a>
-        <div class="hero-footnote"><span class="tiny-spark" aria-hidden="true">✳</span><span>花的姿態各不相同，<br>就像每一個獨一無二的你。</span></div>
-      </div>
-      <div class="hero-art">
-        <div class="hero-photo-frame"><img src="assets/garden.webp" width="1536" height="1024" alt="粉色與淡紫色花朵樹脂髮夾，搭配柔軟布料與小雛菊" fetchpriority="high"></div>
-        <div class="photo-stamp"><span>MADE</span><em>love</em><span>FOR YOU</span></div>
-        <div class="photo-caption"><span>01 / THE LITTLE GARDEN</span><span class="handwritten">A little bloom, a little you.</span></div>
-      </div>
-    </section>
+<main id="app" tabindex="-1"></main>
+<noscript><div class="wrap"><p class="note">請開啟 JavaScript 以瀏覽商品與使用購物車。</p></div></noscript>
 
-    <div class="brand-ribbon" aria-label="品牌理念"><span>一點花，一點日常</span><span aria-hidden="true">✳</span><span class="ribbon-english">Small things. Sweet moments.</span><span aria-hidden="true">✳</span><span>慢慢做，輕輕戴</span><span aria-hidden="true">✳</span><span class="ribbon-english ribbon-last">Made to be treasured.</span></div>
+<footer class="ft">
+  <div class="wrap ft__in">
+    <div class="ft__lk">
+      <a href="#" onclick="go('terms');return false">購買須知</a>
+      <a href="#" onclick="go('privacy');return false">隱私權政策</a>
+      <a id="ftIg" href="#" target="_blank" rel="noopener">Instagram</a>
+      <a id="ftLine" href="#" target="_blank" rel="noopener">LINE 官方帳號</a>
+    </div>
+    <div class="ft__cp">
+      貳恭 ER GONG ・ 濕式牛肉乾<br>
+      <button onclick="adminGate()">後台操作預覽</button>
+    </div>
+  </div>
+</footer>
 
-    <section id="collection" class="collection section-shell" aria-labelledby="collection-title">
-      <div class="section-heading"><div><p class="eyebrow">THE LITTLE COLLECTION</p><h2 id="collection-title">今天，想戴哪一朵？</h2></div><p class="heading-note">讓喜歡的顏色，<br>成為今天的小亮點。</p></div>
-      <div class="collection-toolbar">
-        <div class="category-filters" role="group" aria-label="作品分類"><button class="category active" data-category="all" aria-pressed="true">全部作品 <span>03</span></button><button class="category" data-category="flower" aria-pressed="false">花朵髮夾</button><button class="category" data-category="heart" aria-pressed="false">心形髮夾</button><button class="category" data-category="pressed" aria-pressed="false">乾燥花髮夾</button></div>
-        <span id="result-count" class="result-count" aria-live="polite">3 件小小喜歡</span>
-      </div>
-      <div id="product-grid" class="product-grid"></div>
-      <div id="empty-state" class="empty-state" hidden><svg><use href="#i-heart"/></svg><h3>留個位置，給下一個喜歡</h3><p>點一下作品上的愛心，就能在這裡找到它。</p><button id="show-all" class="button button-outline">繼續看看作品 <svg><use href="#i-arrow"/></svg></button></div>
-      <p class="collection-footer">Every piece, a little one of a kind.<span>每一朵，都有自己的樣子。</span></p>
-    </section>
+<div class="fab">
+  <a class="l" id="fabLine" href="#" target="_blank" rel="noopener">加 LINE 好友</a>
+</div>
 
-    <section id="story" class="story" aria-labelledby="story-title">
-      <div class="story-inner section-shell">
-        <div class="story-visual"><div class="story-image"><img src="assets/lavender.webp" width="1024" height="1024" alt="透明樹脂裡的紫色小花與白色花朵細節" loading="lazy"></div><span class="story-photo-label">the beauty is in the little things.</span></div>
-        <div class="story-copy"><p class="eyebrow">A NOTE FROM MORI</p><h2 id="story-title">把花留住，<br>把喜歡戴走。</h2><p>森花，從一個簡單的想法開始：<br>讓那些捨不得錯過的美好，<br>以小小飾品的模樣，留在身邊。</p><p>喜歡花瓣自然舒展的樣子，也喜歡手作裡<br class="desktop-break">一點不完全相同的細節。願這份小小心意，<br class="desktop-break">陪你度過好多個喜歡自己的日子。</p><span class="story-signature">With love, mori.</span></div>
-      </div>
-    </section>
+<dialog id="modalHost" aria-label="操作視窗"></dialog>
 
-    <section id="care" class="care section-shell" aria-labelledby="care-title">
-      <div class="care-intro"><p class="eyebrow">KEEP THE LITTLE BEAUTY</p><h2 id="care-title">關於你的<br>小小飾品</h2><p>多一點溫柔，<br>讓喜歡陪你久一點。</p></div>
-      <div class="care-notes">
-        <details><summary><span class="note-number">01</span><span>每一件都會一模一樣嗎？</span><svg><use href="#i-plus"/></svg></summary><p>花材的大小、顏色與排列各有不同，樹脂也可能留下細小氣泡或手作痕跡。這些自然差異，讓每件飾品都有自己的表情。</p></details>
-        <details><summary><span class="note-number">02</span><span>日常要怎麼照顧飾品？</span><svg><use href="#i-plus"/></svg></summary><p>收起時用柔軟乾布輕輕擦拭，分開放在乾燥陰涼處。避免長時間日曬、浸水，或直接接觸香水與酒精，也盡量不要拉扯花朵與金屬連接的位置。</p></details>
-        <details><summary><span class="note-number">03</span><span>第一次挑選，有什麼小建議？</span><svg><use href="#i-plus"/></svg></summary><p>先從平常最常穿的顏色挑起：粉色溫柔、紫色清新。再確認髮量、髮夾尺寸與固定方式，找到戴起來舒服、也適合自己的小飾品。</p></details>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer"><div class="footer-top section-shell"><a class="brand footer-brand" href="#"><span class="brand-word">mori<span class="brand-dot">.</span></span><span class="brand-caption">森花手作</span></a><p>讓平凡的日子，<br>開一點小小的花。</p><nav aria-label="頁尾導覽"><a href="#collection">探索作品</a><a href="#story">關於森花</a><a href="#care">飾品小筆記</a></nav><a href="#" class="back-top" aria-label="回到頁首">BACK TO TOP <svg><use href="#i-arrow"/></svg></a></div><div class="footer-bottom section-shell"><span>© <span id="year">2026</span> MORI ATELIER</span><span>品牌、圖片與價格皆為設計示意 · 此頁不提供付款</span><span>HANDMADE WITH LOVE.</span></div></footer>
-
-  <dialog id="product-dialog" class="product-dialog" aria-labelledby="product-title"><button class="dialog-close icon-button" data-close="product-dialog" aria-label="關閉商品詳情"><svg><use href="#i-close"/></svg></button><div id="product-detail"></div></dialog>
-  <dialog id="bag-dialog" class="bag-dialog" aria-labelledby="bag-title"><div class="bag-header"><div><p class="eyebrow">YOUR LITTLE FINDS</p><h2 id="bag-title">我的購物袋 <span id="bag-title-count">(0)</span></h2></div><button class="icon-button" data-close="bag-dialog" aria-label="關閉購物袋"><svg><use href="#i-close"/></svg></button></div><div id="bag-items" class="bag-items"></div><div id="bag-summary"></div><p class="bag-demo-note">設計預覽：可體驗挑選與加入購物袋，尚未開放下單或付款。</p></dialog>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="app.js" defer></script>
 </body>
 </html>
