@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS products (
+  id TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  no TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT '待確認',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_active_sort
+ON products(active, sort_order);
+
+CREATE INDEX IF NOT EXISTS idx_orders_created_at
+ON orders(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_orders_status
+ON orders(status);
+
+PRAGMA optimize;

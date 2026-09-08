@@ -1,9 +1,9 @@
 
-/* Local storefront data. Orders still require LINE confirmation from the shop. */
-const KEY = 'ergong:storefront:v2';
-const SHOP_KEY = KEY + ':shopping';
+/* Storefront data is loaded from the hosted database. Cart/favorites stay device-local. */
+const SHOP_KEY = 'ergong:shopping:v3';
 let DB = null;
 let storageAvailable = true;
+let adminToken = sessionStorage.getItem('ergong:admin') || '';
 
 function seed(){
   const p = (id,name,cat,price,orig,desc,detail,stock,badge,specs)=>({
@@ -39,20 +39,26 @@ function seed(){
 const store = {
   async load(){
     try{
-      const raw = localStorage.getItem(KEY);
-      const saved = raw ? JSON.parse(raw) : null;
+      const res = await fetch('/api/store', {headers:{'accept':'application/json'}});
+      if(!res.ok) throw new Error('Store unavailable');
+      const data = await res.json();
       const base = seed();
-      DB = saved && Array.isArray(saved.products) && saved.settings
-        ? {products:saved.products, settings:{...base.settings,...saved.settings}, orders:[]}
-        : base;
-    }catch(e){ DB = seed(); }
+      DB = {products:data.products||base.products, settings:{...base.settings,...(data.settings||{})}, orders:[]};
+      storageAvailable = true;
+    }catch(e){
+      DB = seed();
+      storageAvailable = false;
+      toast('目前讀不到線上資料庫，先顯示備用內容。');
+    }
   },
   async save(){
+    if(!isAdmin || !adminToken){toast('請先登入正式後台');return false;}
     try{
-      localStorage.setItem(KEY, JSON.stringify({products:DB.products,settings:DB.settings}));
+      const res=await api('/api/admin/store',{method:'PUT',body:{password:adminToken,products:DB.products,settings:DB.settings}});
+      DB={products:res.products,settings:{...seed().settings,...res.settings},orders:res.orders||DB.orders||[]};
       storageAvailable = true;
       return true;
-    }catch(e){ storageAvailable = false; return false; }
+    }catch(e){ storageAvailable = false; toast(e.message||'資料庫儲存失敗'); return false; }
   }
 };
 
@@ -74,7 +80,13 @@ function saveShopping(){
   if(json===lastShoppingJSON)return;
   try { localStorage.setItem(SHOP_KEY,json);lastShoppingJSON=json; } catch(e) {}
 }
-function savedToast(message){toast(storageAvailable ? message+'（此瀏覽器）' : '目前僅暫存，重整後會還原；此瀏覽器無法儲存。');}
+function savedToast(message){toast(storageAvailable ? message+'（已同步到線上）' : '線上資料庫暫時無法儲存，請稍後再試。');}
+async function api(url,{method='GET',body=null}={}){
+  const res=await fetch(url,{method,headers:{'content-type':'application/json','accept':'application/json'},body:body?JSON.stringify(body):null});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||'操作失敗，請稍後再試');
+  return data;
+}
 function inCart(id){return cart.filter(i=>i.id===id).reduce((n,i)=>n+i.qty,0);}
 function remaining(p){return p.stock===null ? Math.max(0,99-inCart(p.id)) : Math.max(0,p.stock-inCart(p.id));}
 function syncCart(){
@@ -515,12 +527,15 @@ async function submitOrder(){
   if(!o.addr) miss.push('取貨門市');
   const box=document.getElementById('ckErr');
   if(miss.length){ box.innerHTML=`<div class="err">還缺：${miss.join('、')}</div>`; box.scrollIntoView({block:'center'}); return; }
-  const st=subTotal(), sh=shipOf(st);
-  const no='EG-'+Date.now().toString(36).toUpperCase()+'-'+String(DB.orders.length+1).padStart(2,'0');
-  const order={no,...o,items:cart.map(i=>({...i,name:DB.products.find(x=>x.id===i.id).name})),
-    sub:st,fee:sh,total:st+sh,status:'待確認',at:new Date().toISOString()};
-  DB.orders.unshift(order);
-  lastOrder=order; cart=[]; go('done');checkoutDraft={};
+  try{
+    const res=await api('/api/orders',{method:'POST',body:{customer:o,items:cart}});
+    lastOrder=res.order;
+    DB.products=res.products||DB.products;
+    cart=[]; saveShopping(); go('done'); checkoutDraft={};
+  }catch(e){
+    box.innerHTML=`<div class="err">${esc(e.message||'訂單送出失敗，請稍後再試。')}</div>`;
+    box.scrollIntoView({block:'center'});
+  }
 }
 function orderText(o){
   return ['貳恭 ER GONG 訂單明細','訂單編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,'Email：'+o.mail,
@@ -638,28 +653,35 @@ function runSearch(){kw=document.getElementById('sk').value.trim();closeModal();
    ========================================================= */
 function adminGate(){
   if(isAdmin){ go('admin'); return; }
-  modal(`<h3>後台操作預覽</h3><p class="note">商品與設定僅儲存在此瀏覽器；此通行碼用於展示操作，不是正式後台的登入驗證。</p><form onsubmit="event.preventDefault();tryLogin()">
-    <div class="field"><label for="pw">預覽通行碼</label><input id="pw" type="password" autocomplete="off"><small>初始通行碼 ergong，可在「網站設定」修改。</small></div>
+  modal(`<h3>正式後台登入</h3><p class="note">登入後可修改商品、網站設定與訂單狀態，變更會同步到線上資料庫。</p><form onsubmit="event.preventDefault();tryLogin()">
+    <div class="field"><label for="pw">後台密碼</label><input id="pw" type="password" autocomplete="current-password"><small>初始密碼 ergong，登入後請到「網站設定」更改。</small></div>
     <div id="pwErr"></div>
-    <button type="submit" class="btn btn--primary btn--full">進入預覽</button></form>`);
+    <button type="submit" class="btn btn--primary btn--full">登入後台</button></form>`);
   setTimeout(()=>document.getElementById('pw')?.focus(),40);
 }
-function tryLogin(){
-  if(document.getElementById('pw').value===DB.settings.adminPw){ isAdmin=true; closeModal(); go('admin'); }
-  else document.getElementById('pwErr').innerHTML='<div class="err">密碼不對，再試一次。</div>';
+async function tryLogin(){
+  const password=document.getElementById('pw').value;
+  const err=document.getElementById('pwErr');
+  try{
+    const data=await api('/api/admin/login',{method:'POST',body:{password}});
+    adminToken=password;sessionStorage.setItem('ergong:admin',password);
+    DB={products:data.products,settings:{...seed().settings,...data.settings},orders:data.orders||[]};
+    isAdmin=true; closeModal(); go('admin');
+  }catch(e){err.innerHTML=`<div class="err">${esc(e.message||'密碼不對，再試一次。')}</div>`;}
 }
 function vAdmin(){
   if(!isAdmin) return vHome();
   const nav=[['sum','總覽'],['prod','商品管理'],['ord','訂單管理'],['set','網站設定']];
   return `<section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>後台操作預覽</h2><p>商品修改只保存在此瀏覽器，不會同步到正式網站</p>
-      <button class="btn btn--sm" onclick="isAdmin=false;go('home')">登出後台</button></div>
-    <p class="note">商品與設定可在同一瀏覽器保留；示範訂單僅在本次開啟期間顯示，不代表商家已收到訂單。</p><div class="adm">
+    <div class="blk__hd"><h2>正式後台</h2><p>商品、設定與訂單會同步到線上資料庫</p>
+      <button class="btn btn--sm" onclick="logoutAdmin()">登出後台</button></div>
+    <p class="note">商品修改後，前台會立即讀取最新資料；訂單送出後會出現在這裡。</p><div class="adm">
       <div class="adm__nav">${nav.map(([k,l])=>`<button aria-current="${admView===k}" onclick="admView='${k}';render()">${l}</button>`).join('')}</div>
       <div class="adm__bd" id="admBody"></div>
     </div>
   </div></section>`;
 }
+function logoutAdmin(){isAdmin=false;adminToken='';sessionStorage.removeItem('ergong:admin');store.load().then(()=>go('home'));}
 function paintAdmin(){
   const el=document.getElementById('admBody'); if(!el) return;
   el.innerHTML=({sum:aSum,prod:aProd,ord:aOrd,set:aSet}[admView]||aSum)();
@@ -669,16 +691,16 @@ function aSum(){
   const low=DB.products.filter(p=>p.stock!==null&&p.stock<=5&&p.active);
   return `<h3 style="font-size:1.25rem;margin-bottom:16px">總覽</h3>
   <div class="kpis">
-    <div class="kpi"><b>${o.length}</b><span>示範訂單</span></div>
+    <div class="kpi"><b>${o.length}</b><span>正式訂單</span></div>
     <div class="kpi"><b>${o.filter(x=>x.status==='待確認').length}</b><span>待確認</span></div>
-    <div class="kpi"><b>${NT(rev)}</b><span>示範完成金額</span></div>
+    <div class="kpi"><b>${NT(rev)}</b><span>完成金額</span></div>
     <div class="kpi"><b>${DB.products.filter(p=>p.active).length}</b><span>上架商品</span></div>
   </div>
   ${low.length?`<div class="note" style="margin-bottom:18px"><b>庫存快沒了：</b>${low.map(p=>`${esc(p.name)}（${p.stock}）`).join('、')}</div>`:''}
   <h4 style="font-size:1rem;margin-bottom:8px">最新訂單</h4>
   ${o.length?`<div class="tbl-wrap"><table><thead><tr><th>編號</th><th>收件人</th><th>金額</th><th>狀態</th></tr></thead>
   <tbody>${o.slice(0,6).map(x=>`<tr><td><b>${x.no}</b></td><td>${esc(x.name)}</td><td>${NT(x.total)}</td><td>${statTag(x.status)}</td></tr>`).join('')}</tbody></table></div>`
-  :'<p style="color:#6b5b4d">還沒有訂單。前台送一筆測試訂單就會出現在這裡。</p>'}`;
+  :'<p style="color:#6b5b4d">還沒有訂單。客人送出訂單後會出現在這裡。</p>'}`;
 }
 const statTag=s=>`<span class="stat ${({'待確認':'s-wait','備貨中':'s-paid','已出貨':'s-ship','已完成':'s-done'})[s]||'s-wait'}">${s}</span>`;
 
@@ -791,7 +813,14 @@ function aOrd(){
       <td><button class="btn btn--sm" onclick="showOrder('${o.no}')">明細</button></td></tr>`).join('')}</tbody>
   </table></div>`;
 }
-async function setStatus(no,s){const o=DB.orders.find(x=>x.no===no);o.status=s;toast('示範狀態已改為'+s);}
+async function setStatus(no,s){
+  const o=DB.orders.find(x=>x.no===no);
+  if(o)o.status=s;
+  try{
+    await api('/api/admin/orders/'+encodeURIComponent(no),{method:'PATCH',body:{password:adminToken,status:s}});
+    toast('訂單狀態已更新');
+  }catch(e){toast(e.message||'狀態更新失敗');}
+}
 function showOrder(no){
   const o=DB.orders.find(x=>x.no===no);
   modal(`<h3>${o.no}</h3>
@@ -814,11 +843,12 @@ function aSet(){
   <div class="field"><label for="s-cats">商品分類（一行一個）</label><textarea id="s-cats">${esc(s.cats.join('\n'))}</textarea></div>
   <div class="field"><label for="s-mq">首頁跑馬燈（一行一則，會輪播）</label><textarea id="s-mq">${esc(s.marquee.join('\n'))}</textarea></div>
   <div class="field"><label for="s-about">關於貳恭文案</label><textarea id="s-about" style="min-height:150px">${esc(s.about)}</textarea></div>
-  <div class="field"><label for="s-pw">預覽通行碼</label><input id="s-pw" value="${esc(s.adminPw)}"><small>僅用於此瀏覽器的操作示範，並非正式權限驗證。</small></div>
+  <div class="field"><label for="s-pw">更改後台密碼</label><input id="s-pw" type="password" autocomplete="new-password" value=""><small>留空代表不更改；建議上線後改成只有你知道的密碼。</small></div>
   <button class="btn btn--primary" onclick="saveSet()">儲存設定</button>`;
 }
 async function saveSet(){
   const g=id=>document.getElementById(id).value;
+  const newPw=g('s-pw').trim();
   const urls=['s-line','s-ig'];
   if(urls.some(id=>g(id).trim()&&!safeUrl(g(id).trim()))){toast('連結請使用有效的 http 或 https 網址');return;}
   const fee=Number(g('s-fee')),free=Number(g('s-free'));
@@ -829,9 +859,11 @@ async function saveSet(){
     shipFee:Number(g('s-fee'))||0,freeOver:Number(g('s-free'))||0,
     cats:g('s-cats').split('\n').map(x=>x.trim()).filter(Boolean),
     marquee:g('s-mq').split('\n').map(x=>x.trim()).filter(Boolean),
-    about:g('s-about'),adminPw:g('s-pw').trim()||'ergong'
+    about:g('s-about'),adminPw:newPw
   });
-  await store.save(); render(); savedToast('設定已儲存');
+  const saved=await store.save();
+  if(saved&&newPw){adminToken=newPw;sessionStorage.setItem('ergong:admin',newPw);}
+  render(); savedToast('設定已儲存');
 }
 
 /* ---------- 小工具 ---------- */
