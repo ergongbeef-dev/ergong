@@ -174,10 +174,11 @@ async function createOrder(database, payload) {
   const items = Array.isArray(payload?.items) ? payload.items : [];
   const name = String(customer.name || "").trim();
   const tel = String(customer.tel || "").trim();
-  const mail = String(customer.mail || "").trim();
+  const mail = String(customer.mail || "").trim().replace(/\uFF20/g, "@").replace(/\s+/g, "");
   const addr = String(customer.addr || "").trim();
-  if (!name || !/^09\\d{8}$/.test(tel) || !/^\\S+@\\S+\\.\\S+$/.test(mail) || !addr || !items.length) {
-    return fail("請確認姓名、手機、Email、取貨門市與商品內容。");
+  const emailOk = !mail || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/i.test(mail);
+  if (!name || !/^09\\d{8}$/.test(tel) || !emailOk || !addr || !customer.agree || !items.length) {
+    return fail("請確認姓名、手機、Email、取貨門市、取貨同意與商品內容。");
   }
   const settings = await getSettings(database);
   const products = await getProducts(database, false);

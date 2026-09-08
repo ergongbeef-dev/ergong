@@ -195,10 +195,12 @@ function rememberPosition(){
 function rememberCheckout(){
   if(view!=='checkout')return;
   ['f-name','f-tel','f-mail','f-store','f-note'].forEach(id=>{const el=document.getElementById(id);if(el)checkoutDraft[id]=el.value;});
+  const agree=document.getElementById('f-agree');if(agree)checkoutDraft['f-agree']=agree.checked;
 }
 function restoreCheckout(){
   if(view!=='checkout')return;
   Object.entries(checkoutDraft).forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.value=value;});
+  const agree=document.getElementById('f-agree');if(agree)agree.checked=Boolean(checkoutDraft['f-agree']);
 }
 function closeMenu(){
   document.getElementById('nav').classList.remove('open');
@@ -455,7 +457,7 @@ function cartSummary(){
         <div class="sum__r"><span>運費</span><b>${sh?NT(sh):'免運'}</b></div>
         ${sh?`<div style="font-size:0.8125rem;color:var(--jerky)">再買 ${NT(DB.settings.freeOver-st)} 就免運</div>`:''}
         <div class="sum__r sum__r--tot"><span>應付金額</span><b>${NT(st+sh)}</b></div>
-        <button class="btn btn--primary btn--full" style="margin-top:16px" onclick="go('checkout')">試用超商取貨流程</button>
+        <button class="btn btn--primary btn--full" style="margin-top:16px" onclick="go('checkout')">下單去</button>
         <button class="btn btn--full btn--sm" style="margin-top:10px" onclick="go('shop')">繼續逛</button>
       `;
 }
@@ -485,9 +487,9 @@ function vCheckout(){
     <div class="blk__hd"><h2>超商取貨與貨到付款</h2><p>送出後請把訂單明細傳到 LINE，收到回覆確認後才算成立。</p></div>
     <div class="two">
       <div class="panel" style="padding:24px">
-        <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="name" placeholder="例：王小明"></div>
-        <div class="field"><label for="f-tel">手機號碼</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxx"></div>
-        <div class="field"><label for="f-mail">Email</label><input id="f-mail" type="email" autocomplete="email" placeholder="you@example.com"><small>目前不會自動寄信，主要用於訂單聯絡。</small></div>
+        <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="name" placeholder="例：王小明"><small>請務必使用真實姓名。</small></div>
+        <div class="field"><label for="f-tel">手機號碼</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxx"><small>請務必使用真實電話，方便取貨與聯絡。</small></div>
+        <div class="field"><label for="f-mail">Email（可留空）</label><input id="f-mail" type="email" autocomplete="email" placeholder="you@gmail.com"><small>可填 Gmail；目前不會自動寄信，主要用於訂單聯絡。</small></div>
         <div class="field"><span class="field-label">配送方式</span>
           <div class="payment-choice" aria-label="配送方式：超商冷凍取貨">
             <span class="payment-check" aria-hidden="true">✓</span>
@@ -502,6 +504,9 @@ function vCheckout(){
           </div>
         </div>
         <div class="field"><label for="f-note">訂單備註</label><textarea id="f-note" placeholder="口味指定、指定到貨日等"></textarea></div>
+        <div class="field">
+          <label class="checkline"><input id="f-agree" type="checkbox">我同意下單後請務必取貨，若無故未取可能影響後續訂購。</label>
+        </div>
         <div id="ckErr"></div>
         <button class="btn btn--primary btn--full" onclick="submitOrder()">產生訂單明細</button>
         <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">資料會先在你的裝置產生，請務必傳到 LINE 讓我們確認；不會在線上扣款。</p>
@@ -525,13 +530,17 @@ async function submitOrder(){
   if(!cart.length) return;
   const g=id=>document.getElementById(id).value.trim();
   const ship='超商冷凍取貨';
-  const o={name:g('f-name'),tel:g('f-tel'),mail:g('f-mail'),ship,pay:'超商貨到付款',
-    addr:g('f-store'),note:g('f-note')};
+  const cleanMail=g('f-mail').replace(/\uFF20/g,'@').replace(/\s+/g,'');
+  const agree=document.getElementById('f-agree')?.checked;
+  const emailOk=!cleanMail||/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(cleanMail);
+  const o={name:g('f-name'),tel:g('f-tel'),mail:cleanMail,ship,pay:'超商貨到付款',
+    addr:g('f-store'),note:g('f-note'),agree};
   const miss=[];
   if(!o.name) miss.push('收件人姓名');
   if(!/^09\d{8}$/.test(o.tel)) miss.push('正確的手機號碼');
-  if(!/^\S+@\S+\.\S+$/.test(o.mail)) miss.push('正確的 Email');
+  if(!emailOk) miss.push('正確的 Email');
   if(!o.addr) miss.push('取貨門市');
+  if(!o.agree) miss.push('取貨同意');
   const box=document.getElementById('ckErr');
   if(miss.length){ box.innerHTML=`<div class="err">還缺：${miss.join('、')}</div>`; box.scrollIntoView({block:'center'}); return; }
   try{
@@ -545,7 +554,7 @@ async function submitOrder(){
   }
 }
 function orderText(o){
-  return ['貳恭 ER GONG 訂單明細','訂單編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,'Email：'+o.mail,
+  return ['貳恭 ER GONG 訂單明細','訂單編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,o.mail?'Email：'+o.mail:'',
     '配送：'+o.ship+'／'+o.addr,'付款：'+(o.pay||'超商貨到付款'),'—',
     ...o.items.map(i=>`${i.name}${i.spec?'・'+i.spec:''} ×${i.qty}　${NT(i.price*i.qty)}`),
     '運費：'+(o.fee?NT(o.fee):'免運'),'應付金額：'+NT(o.total),
