@@ -157,12 +157,15 @@ function cleanSettings(input, current) {
 }
 
 async function publicStore(database) {
-  const [settings, products] = await Promise.all([getSettings(database), getProducts(database, false)]);
+  const settings = await getSettings(database);
+  const products = await getProducts(database, false);
   return {settings: publicSettings(settings), products};
 }
 
 async function adminStore(database) {
-  const [settings, products, orders] = await Promise.all([getSettings(database), getProducts(database, true), getOrders(database)]);
+  const settings = await getSettings(database);
+  const products = await getProducts(database, true);
+  const orders = await getOrders(database);
   return {settings: publicSettings(settings), products, orders};
 }
 

@@ -58,7 +58,14 @@ const store = {
       DB={products:res.products,settings:{...seed().settings,...res.settings},orders:res.orders||DB.orders||[]};
       storageAvailable = true;
       return true;
-    }catch(e){ storageAvailable = false; toast(e.message||'資料庫儲存失敗'); return false; }
+    }catch(e){
+      storageAvailable = false;
+      if(String(e.message||'').includes('密碼')){
+        isAdmin=false;adminToken='';sessionStorage.removeItem('ergong:admin');
+      }
+      toast(e.message||'資料庫儲存失敗');
+      return false;
+    }
   }
 };
 
@@ -724,14 +731,24 @@ function aProd(){
       </div></td></tr>`).join('')}</tbody>
   </table></div>`;
 }
-async function toggleActive(id){const p=DB.products.find(x=>x.id===id);p.active=!p.active;await store.save();render();savedToast(p.active?'已上架':'已下架');}
+async function toggleActive(id){
+  const p=DB.products.find(x=>x.id===id);if(!p)return;
+  const previous=p.active;p.active=!p.active;
+  if(await store.save()){render();savedToast(p.active?'已上架':'已下架');}
+  else{p.active=previous;render();}
+}
 async function delProd(id){
   const p=DB.products.find(x=>x.id===id);
   modal(`<h3>刪除商品</h3><p>要刪掉「${esc(p.name)}」嗎？刪了就找不回來。</p>
     <div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="closeModal()">取消</button>
     <button class="btn btn--primary" onclick="doDel(${arg(id)})">確定刪除</button></div>`);
 }
-async function doDel(id){DB.products=DB.products.filter(x=>x.id!==id);await store.save();closeModal();render();savedToast('商品已刪除');}
+async function doDel(id){
+  const previous=DB.products.slice();
+  DB.products=DB.products.filter(x=>x.id!==id);
+  if(await store.save()){closeModal();render();savedToast('商品已刪除');}
+  else{DB.products=previous;render();}
+}
 
 function editProd(id){
   const p=id?DB.products.find(x=>x.id===id):{name:'',cat:DB.settings.cats[0],price:'',orig:'',desc:'',detail:'',stock:'',hot:false,isNew:false,active:true,specs:[],photos:[]};
@@ -795,7 +812,9 @@ async function saveProd(){
     admEdit.id='p'+Date.now();
     DB.products.unshift(admEdit);
   }
-  await store.save(); closeModal(); render(); savedToast('商品已儲存');
+  const saved=await store.save();
+  if(saved){closeModal(); render(); savedToast('商品已儲存');}
+  else document.getElementById('peErr').innerHTML='<div class="err">儲存失敗，請確認後台密碼仍有效，或重新登入後再試。</div>';
 }
 
 function aOrd(){
@@ -863,7 +882,8 @@ async function saveSet(){
   });
   const saved=await store.save();
   if(saved&&newPw){adminToken=newPw;sessionStorage.setItem('ergong:admin',newPw);}
-  render(); savedToast('設定已儲存');
+  if(saved){render(); savedToast('設定已儲存');}
+  else toast('設定沒有儲存成功，請重新登入後再試。');
 }
 
 /* ---------- 小工具 ---------- */
