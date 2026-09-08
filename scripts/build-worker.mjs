@@ -56,7 +56,7 @@ const BINARY_ASSETS = ${JSON.stringify(binaryAssets)};
 const CONTENT_TYPES = ${JSON.stringify(contentTypes)};
 const DEFAULT_PRODUCTS = ${JSON.stringify(products)};
 const DEFAULT_SETTINGS = ${JSON.stringify(settings)};
-const STATUSES = new Set(["待確認","備貨中","已出貨","已完成"]);
+const STATUSES = new Set(["待確認","備貨中","已出貨","已完成","已取消"]);
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,

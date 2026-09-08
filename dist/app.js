@@ -282,7 +282,7 @@ function vHome(){
     <div class="hero__in">
       <div class="bubble">
         <h1><em class="en">ER GONG</em>咬得到肉的<br>濕式牛肉乾</h1>
-        <p>整塊牛腱心手切逆紋，低溫濕滷六小時。不加防腐劑，所以保存期短、味道濃。</p>
+        <p><strong>市面罕見｜全新體驗濕式牛肉乾登場</strong>🔥</p>
         <div class="hero__cta">
           <button class="btn btn--primary" onclick="go('shop')">看全部口味</button>
           <a class="btn btn--line" href="${esc(safeUrl(s.lineUrl))}" target="_blank" rel="noopener">加 LINE 好友</a>
