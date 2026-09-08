@@ -30,7 +30,7 @@ function seed(){
       shipFee:120,
       freeOver:1500,
       cats:['經典口味','重口味','組合包'],
-      marquee:['滿 NT$1,500 免運','冷藏配送・週一至週四出貨','新口味「麻辣」上架中'],
+      marquee:['滿 NT$1,500 免運','超商冷凍取貨・週一至週四出貨','新口味「麻辣」上架中'],
       about:'貳恭做的是濕式牛肉乾——不是嚼到腮幫子痠的那種。\n整塊牛腱心手切逆紋，低溫濕滷 6 小時，咬下去還吃得到肉纖維的濕潤感。\n\n一開始只是滷給家裡人吃，滷太多、朋友一直要，就變成現在這樣。\n沒有加防腐劑，所以保存期短，請冷藏、儘快吃完。',
       adminPw:'ergong'
     }
@@ -175,13 +175,11 @@ function rememberPosition(){
 }
 function rememberCheckout(){
   if(view!=='checkout')return;
-  ['f-name','f-tel','f-mail','f-addr','f-store','f-note'].forEach(id=>{const el=document.getElementById(id);if(el)checkoutDraft[id]=el.value;});
-  const ship=document.querySelector('input[name=ship]:checked');if(ship)checkoutDraft.ship=ship.value;
+  ['f-name','f-tel','f-mail','f-store','f-note'].forEach(id=>{const el=document.getElementById(id);if(el)checkoutDraft[id]=el.value;});
 }
 function restoreCheckout(){
   if(view!=='checkout')return;
   Object.entries(checkoutDraft).forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.value=value;});
-  if(checkoutDraft.ship){document.querySelectorAll('input[name=ship]').forEach(el=>{el.checked=el.value===checkoutDraft.ship;});toggleShip();}
 }
 function closeMenu(){
   document.getElementById('nav').classList.remove('open');
@@ -294,7 +292,7 @@ function vHome(){
         <h3 style="font-size:1.1875rem;margin-bottom:12px">買之前先知道</h3>
         <ul style="padding-left:18px;font-size:0.90625rem;margin:0">
           <li>接單後製作，出貨約 3–5 個工作日。</li>
-          <li>冷藏配送，滿 ${NT(s.freeOver)} 免運，未滿收 ${NT(s.shipFee)}。</li>
+          <li>超商冷凍取貨，滿 ${NT(s.freeOver)} 免運，未滿收 ${NT(s.shipFee)}。</li>
           <li>收到商品如有異常，請保留照片並聯繫我們。</li>
         </ul>
         <button class="btn btn--sm" style="margin-top:16px" onclick="go('terms')">完整購買須知</button>
@@ -438,7 +436,7 @@ function cartSummary(){
         <div class="sum__r"><span>運費</span><b>${sh?NT(sh):'免運'}</b></div>
         ${sh?`<div style="font-size:0.8125rem;color:var(--jerky)">再買 ${NT(DB.settings.freeOver-st)} 就免運</div>`:''}
         <div class="sum__r sum__r--tot"><span>應付金額</span><b>${NT(st+sh)}</b></div>
-        <button class="btn btn--primary btn--full" style="margin-top:16px" onclick="go('checkout')">試用寄送流程</button>
+        <button class="btn btn--primary btn--full" style="margin-top:16px" onclick="go('checkout')">試用超商取貨流程</button>
         <button class="btn btn--full btn--sm" style="margin-top:10px" onclick="go('shop')">繼續逛</button>
       `;
 }
@@ -465,59 +463,56 @@ function vCheckout(){
   if(!cart.length) return vCart();
   const st=subTotal(), sh=shipOf(st);
   return `<section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>寄送與貨到付款</h2><p>請使用測試資料；不會建立正式訂單或寄送 Email</p></div>
+    <div class="blk__hd"><h2>超商取貨與貨到付款</h2><p>請使用測試資料；不會建立正式訂單或寄送 Email</p></div>
     <div class="two">
       <div class="panel" style="padding:24px">
         <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="off" placeholder="例：王小明（測試）"></div>
         <div class="field"><label for="f-tel">手機號碼</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxx"></div>
         <div class="field"><label for="f-mail">Email</label><input id="f-mail" type="email" autocomplete="off" placeholder="preview@example.com"><small>欄位僅供試填，這版不會寄送通知。</small></div>
-        <div class="field"><label>配送方式</label>
-          <div class="radios">
-            <label><input type="radio" name="ship" value="宅配到府" checked onchange="toggleShip()">宅配到府（冷藏）</label>
-            <label><input type="radio" name="ship" value="超商取貨" onchange="toggleShip()">超商冷凍取貨</label>
+        <div class="field"><span class="field-label">配送方式</span>
+          <div class="payment-choice" aria-label="配送方式：超商冷凍取貨">
+            <span class="payment-check" aria-hidden="true">✓</span>
+            <span><b>超商冷凍取貨</b><small>目前統一使用超商取貨，請填寫指定門市。</small></span>
           </div>
         </div>
-        <div class="field" id="wrap-addr"><label for="f-addr">宅配地址</label><input id="f-addr" autocomplete="street-address" placeholder="含郵遞區號"></div>
-        <div class="field hidden" id="wrap-store"><label for="f-store">取貨門市</label><input id="f-store" placeholder="例：7-ELEVEN 板橋門市 / 店號"></div>
+        <div class="field" id="wrap-store"><label for="f-store">取貨門市</label><input id="f-store" placeholder="例：7-ELEVEN 板橋門市 / 店號"></div>
         <div class="field"><span class="field-label">付款方式</span>
-          <div class="payment-choice" aria-label="付款方式：貨到付款">
+          <div class="payment-choice" aria-label="付款方式：超商貨到付款">
             <span class="payment-check" aria-hidden="true">✓</span>
-            <span><b>貨到付款</b><small id="payment-note">商品送達時，直接向配送人員付款。</small></span>
+            <span><b>超商貨到付款</b><small id="payment-note">到指定超商取貨時，於門市付款。</small></span>
           </div>
         </div>
         <div class="field"><label for="f-note">訂單備註</label><textarea id="f-note" placeholder="口味指定、指定到貨日等"></textarea></div>
         <div id="ckErr"></div>
-        <button class="btn btn--primary btn--full" onclick="submitOrder()">確認貨到付款預覽</button>
+        <button class="btn btn--primary btn--full" onclick="submitOrder()">確認超商貨到付款預覽</button>
         <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">試填資料只在本次開啟頁面期間保留，不會傳給商家，也不會扣款。</p>
       </div>
       <div class="panel sum">
         <h3 style="font-size:1.0625rem;margin-bottom:10px">訂單內容</h3>
         ${cart.map(i=>{const p=DB.products.find(x=>x.id===i.id);return `<div class="sum__r"><span>${esc(p.name)}${i.spec?`・${esc(i.spec)}`:''} ×${i.qty}</span><b>${NT(i.price*i.qty)}</b></div>`}).join('')}
         <div class="sum__r"><span>運費</span><b>${sh?NT(sh):'免運'}</b></div>
-        <div class="sum__r"><span>付款方式</span><b>貨到付款</b></div>
+        <div class="sum__r"><span>配送方式</span><b>超商冷凍取貨</b></div>
+        <div class="sum__r"><span>付款方式</span><b>超商貨到付款</b></div>
         <div class="sum__r sum__r--tot"><span>應付金額</span><b>${NT(st+sh)}</b></div>
       </div>
     </div>
   </div></section>`;
 }
 function toggleShip(){
-  const home=document.querySelector('input[name=ship]:checked').value==='宅配到府';
-  document.getElementById('wrap-addr').classList.toggle('hidden',!home);
-  document.getElementById('wrap-store').classList.toggle('hidden',home);
-  const note=document.getElementById('payment-note');if(note)note.textContent=home?'商品送達時，直接向配送人員付款。':'到指定超商取貨時，於門市付款。';
+  const note=document.getElementById('payment-note');if(note)note.textContent='到指定超商取貨時，於門市付款。';
 }
 let lastOrder=null;
 async function submitOrder(){
   if(!cart.length) return;
   const g=id=>document.getElementById(id).value.trim();
-  const ship=document.querySelector('input[name=ship]:checked').value;
-  const o={name:g('f-name'),tel:g('f-tel'),mail:g('f-mail'),ship,pay:'貨到付款',
-    addr:ship==='宅配到府'?g('f-addr'):g('f-store'),note:g('f-note')};
+  const ship='超商冷凍取貨';
+  const o={name:g('f-name'),tel:g('f-tel'),mail:g('f-mail'),ship,pay:'超商貨到付款',
+    addr:g('f-store'),note:g('f-note')};
   const miss=[];
   if(!o.name) miss.push('收件人姓名');
   if(!/^09\d{8}$/.test(o.tel)) miss.push('正確的手機號碼');
   if(!/^\S+@\S+\.\S+$/.test(o.mail)) miss.push('正確的 Email');
-  if(!o.addr) miss.push(ship==='宅配到府'?'宅配地址':'取貨門市');
+  if(!o.addr) miss.push('取貨門市');
   const box=document.getElementById('ckErr');
   if(miss.length){ box.innerHTML=`<div class="err">還缺：${miss.join('、')}</div>`; box.scrollIntoView({block:'center'}); return; }
   const st=subTotal(), sh=shipOf(st);
@@ -529,7 +524,7 @@ async function submitOrder(){
 }
 function orderText(o){
   return ['貳恭 ER GONG 預覽明細（非正式訂單）','預覽編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,
-    '配送：'+o.ship+'／'+o.addr,'付款：'+(o.pay||'貨到付款'),'—',
+    '配送：'+o.ship+'／'+o.addr,'付款：'+(o.pay||'超商貨到付款'),'—',
     ...o.items.map(i=>`${i.name}${i.spec?'・'+i.spec:''} ×${i.qty}　${NT(i.price*i.qty)}`),
     '運費：'+(o.fee?NT(o.fee):'免運'),'應付金額：'+NT(o.total),
     o.note?'備註：'+o.note:''].filter(Boolean).join('\n');
@@ -540,12 +535,12 @@ function vDone(){
     <h2>預覽明細已產生</h2>
     <div class="ordno">${o.no}</div>
     <p style="margin:0">試算金額 <b style="font-size:1.375rem">${NT(o.total)}</b></p>
-    <p class="done-payment">付款方式：<b>${esc(o.pay||'貨到付款')}</b></p>
+    <p class="done-payment">付款方式：<b>${esc(o.pay||'超商貨到付款')}</b></p>
     <div class="steps">
       <b>這是購物流程的設計預覽</b>
-      沒有建立正式訂單，也不會安排出貨。正式啟用後，顧客會在宅配送達或超商取貨時付款。
+      沒有建立正式訂單，也不會安排出貨。正式啟用後，顧客會到指定超商取貨並於門市付款。
       <b>可以繼續試用</b>
-      下方可複製預覽明細；頁尾的「後台操作預覽」可以查看這筆示範資料。重新整理頁面後，試填的寄送資料會清除。
+      下方可複製預覽明細；頁尾的「後台操作預覽」可以查看這筆示範資料。重新整理頁面後，試填的取貨資料會清除。
     </div>
     <div style="margin-top:22px;text-align:left">
       <div class="lbl">預覽明細</div>
@@ -584,7 +579,7 @@ function vTerms(){
     <h4>製作與出貨</h4>
     <ul>
       <li>全品項為接單後製作，一般 3–5 個工作日內出貨；遇連假或大量訂單會於 LINE 公告。</li>
-      <li>冷藏配送。宅配為黑貓低溫，超商為冷凍取貨。</li>
+      <li>目前統一使用超商冷凍取貨。</li>
     </ul>
     <h4>運費</h4>
     <ul><li>單筆滿 ${NT(s.freeOver)} 免運，未滿收 ${NT(s.shipFee)}。</li></ul>
@@ -600,7 +595,7 @@ function vTerms(){
     </ul>
     <h4>付款</h4>
     <ul>
-      <li>付款方式為貨到付款：宅配送達時向配送人員付款，或於指定超商取貨時付款。</li>
+      <li>付款方式為超商貨到付款：顧客於指定超商取貨時付款。</li>
       <li>目前網站為設計預覽，送出資料不會建立正式訂單。</li>
     </ul>
     <h4>發票</h4>
@@ -612,8 +607,8 @@ function vPrivacy(){
     <h2>隱私與預覽資料</h2><p style="color:var(--jerky);font-weight:700;margin-top:4px">目前設計預覽的資料使用方式</p><div class="diamond">◆ ◇ ◆</div>
     <h4>商品、設定與購物車</h4>
     <p>你在後台預覽修改的商品與設定，以及購物車和收藏，會保存在目前瀏覽器。這些修改不會同步到其他人的裝置，也不會成為正式商店資料。</p>
-    <h4>寄送流程的試填資料</h4>
-    <p>請使用測試資料。姓名、電話、Email、地址與預覽明細只在本次開啟頁面期間保留，不會傳送給商家、寄送通知、安排物流或收取款項。重新整理頁面後，這些試填資料會清除。</p>
+    <h4>取貨流程的試填資料</h4>
+    <p>請使用測試資料。姓名、電話、Email、取貨門市與預覽明細只在本次開啟頁面期間保留，不會傳送給商家、寄送通知、安排物流或收取款項。重新整理頁面後，這些試填資料會清除。</p>
     <h4>外部連結與圖片</h4>
     <p>點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
     <h4>清除本機預覽資料</h4>
@@ -803,7 +798,7 @@ function aSet(){
   <div class="field"><label for="s-line">LINE 官方帳號加好友連結</label><input id="s-line" value="${esc(safeUrl(s.lineUrl))}">
     <small>在 LINE Official Account Manager →「加入好友網址」複製，格式像 https://line.me/R/ti/p/@你的ID</small></div>
   <div class="field"><label for="s-ig">Instagram 連結</label><input id="s-ig" value="${esc(safeUrl(s.igUrl))}"></div>
-  <div class="field"><span class="field-label">付款方式</span><div class="payment-choice"><span class="payment-check" aria-hidden="true">✓</span><span><b>貨到付款</b><small>目前唯一提供的付款方式</small></span></div></div>
+  <div class="field"><span class="field-label">付款方式</span><div class="payment-choice"><span class="payment-check" aria-hidden="true">✓</span><span><b>超商貨到付款</b><small>目前唯一提供的付款方式</small></span></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     <div class="field"><label for="s-fee">運費</label><input id="s-fee" inputmode="numeric" value="${s.shipFee}"></div>
     <div class="field"><label for="s-free">免運門檻</label><input id="s-free" inputmode="numeric" value="${s.freeOver}"></div>
@@ -822,7 +817,7 @@ async function saveSet(){
   if(!Number.isSafeInteger(fee)||fee<0||!Number.isSafeInteger(free)||free<0){toast('運費與免運門檻請填零或正整數');return;}
   if(!g('s-cats').split('\n').some(x=>x.trim())){toast('請保留至少一個商品分類');return;}
   Object.assign(DB.settings,{
-    lineUrl:g('s-line').trim(),igUrl:g('s-ig').trim(),payUrl:'',payHint:'貨到付款',
+    lineUrl:g('s-line').trim(),igUrl:g('s-ig').trim(),payUrl:'',payHint:'超商貨到付款',
     shipFee:Number(g('s-fee'))||0,freeOver:Number(g('s-free'))||0,
     cats:g('s-cats').split('\n').map(x=>x.trim()).filter(Boolean),
     marquee:g('s-mq').split('\n').map(x=>x.trim()).filter(Boolean),
