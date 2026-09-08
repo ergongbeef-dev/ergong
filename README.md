@@ -4,7 +4,7 @@ Adapted from the user-supplied `index_1.html`, preserving the orange/black comic
 
 The authored static entrypoint is `dist/index.html`, with `dist/style.css` and `dist/app.js`. No installation or build is required.
 
-Includes homepage, product catalog, categories, search, favorites, variants, stock-aware cart, shipping-cost calculation, delivery-form preview, order-detail preview, brand/about content and a local admin-interface demonstration.
+Includes homepage, product catalog, categories, search, favorites, variants, stock-aware cart, shipping-cost calculation, a cash-on-delivery-only checkout preview, order-detail preview, brand/about content and a local admin-interface demonstration. Mobile layouts use larger touch targets, contained horizontal scrollers, non-blocking product interactions, browser-history navigation, catalog scroll restoration and safe-area spacing.
 
 Products, settings, cart and favorites save only in the current browser via localStorage. They do not change canonical Site source or sync between customers. Trial delivery information and trial orders remain in memory and are cleared by reload. The preview passcode from the supplied artifact is a UI demonstration, not real authentication. The Site itself remains restricted by Sites owner-only access.
 

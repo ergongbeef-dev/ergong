@@ -2,10 +2,15 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>貳恭 ER GONG｜濕式牛肉乾</title>
 <meta name="theme-color" content="#F26A21">
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<meta name="application-name" content="貳恭 ER GONG">
+<meta name="apple-mobile-web-app-title" content="貳恭 ER GONG">
+<meta property="og:title" content="貳恭 ER GONG｜濕式牛肉乾">
+<meta property="og:description" content="整塊牛腱手切、低溫濕式滷製。探索貳恭的經典口味與送禮組合。">
+<link rel="icon" href="assets/ergong-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/ergong-touch-icon.png">
 <meta name="description" content="貳恭 ER GONG 濕式牛肉乾。整塊牛腱手切、低溫濕式滷製，咬得到肉纖維的濕潤口感。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +24,7 @@
   <div class="wrap bar__in">
     <button class="logo" onclick="go('home')" aria-label="貳恭首頁">
       <span class="logo__mark">貳</span>
-      <span class="logo__tx"><b>貳恭 濕式牛肉乾</b><span class="en">ER GONG</span></span>
+      <span class="logo__tx"><b>貳恭 <span class="logo__product">濕式牛肉乾</span></b><span class="en">ER GONG</span></span>
     </button>
     <nav class="main" id="nav" aria-label="主要導覽">
       <button data-v="home" onclick="go('home')">首頁</button>
@@ -28,9 +33,9 @@
       <button data-v="terms" onclick="go('terms')">購買須知</button>
     </nav>
     <div class="bar__act">
-      <button class="iconbtn menubtn" onclick="toggleMenu()" aria-label="開啟選單" aria-controls="nav" aria-expanded="false">☰</button>
-      <button class="iconbtn" onclick="openSearch()" aria-label="搜尋商品">⌕</button>
-      <button class="iconbtn" onclick="go('cart')" aria-label="購物車">🛒<span class="badge hidden" id="cartBadge">0</span></button>
+      <button class="iconbtn menubtn" onclick="toggleMenu()" aria-label="開啟選單" aria-controls="nav" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <button class="iconbtn" onclick="openSearch()" aria-label="搜尋商品"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+      <button class="iconbtn" id="cartButton" onclick="go('cart')" aria-label="購物車，目前 0 件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l3 12h10l3-9H6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span class="badge hidden" id="cartBadge">0</span></button>
     </div>
   </div>
 </header>

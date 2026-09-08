@@ -68,8 +68,11 @@ function safeUrl(value){
   try { const u=new URL(String(value),location.origin); return /^https?:$/.test(u.protocol) ? u.href : ''; }
   catch(e){ return ''; }
 }
+let lastShoppingJSON='';
 function saveShopping(){
-  try { localStorage.setItem(SHOP_KEY,JSON.stringify({cart,favs})); } catch(e) {}
+  const json=JSON.stringify({cart,favs});
+  if(json===lastShoppingJSON)return;
+  try { localStorage.setItem(SHOP_KEY,json);lastShoppingJSON=json; } catch(e) {}
 }
 function savedToast(message){toast(storageAvailable ? message+'（此瀏覽器）' : '目前僅暫存，重整後會還原；此瀏覽器無法儲存。');}
 function inCart(id){return cart.filter(i=>i.id===id).reduce((n,i)=>n+i.qty,0);}
@@ -111,7 +114,7 @@ function artFor(p,big){
 }
 function imgOf(p,idx){
   const ph=safeUrl((p.photos||[])[idx||0]);
-  return ph?`<img src="${esc(ph)}" alt="${esc(p.name)}">`:artFor(p);
+  return ph?`<img src="${esc(ph)}" alt="${esc(p.name)}" width="300" height="300" loading="lazy" decoding="async">`:artFor(p);
 }
 
 /* ---------- IP 角色（首圖） ---------- */
@@ -161,30 +164,66 @@ function mascot(){return `<svg class="hero__mascot" width="290" viewBox="0 0 300
    前台畫面
    ========================================================= */
 const live = ()=>DB.products.filter(p=>p.active);
+const pageViews=['home','shop','product','cart','checkout','done','about','terms','privacy','admin'];
+let routeSerial=0;
+let checkoutDraft={};
+const pageScroll=new Map();
+function routeURL(){return location.pathname+location.search+(view==='home'?'':'#'+view+(view==='product'?'='+encodeURIComponent(cur):''));}
+function routeSnapshot(){return {ergong:true,route:routeSerial,view,cur,filter,kw,curSpec,curQty,curPhoto};}
+function rememberPosition(){
+  if(history.state?.ergong){pageScroll.set(history.state.route,window.scrollY);history.replaceState({...history.state,...routeSnapshot()},'');}
+}
+function rememberCheckout(){
+  if(view!=='checkout')return;
+  ['f-name','f-tel','f-mail','f-addr','f-store','f-note'].forEach(id=>{const el=document.getElementById(id);if(el)checkoutDraft[id]=el.value;});
+  const ship=document.querySelector('input[name=ship]:checked');if(ship)checkoutDraft.ship=ship.value;
+}
+function restoreCheckout(){
+  if(view!=='checkout')return;
+  Object.entries(checkoutDraft).forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.value=value;});
+  if(checkoutDraft.ship){document.querySelectorAll('input[name=ship]').forEach(el=>{el.checked=el.value===checkoutDraft.ship;});toggleShip();}
+}
+function closeMenu(){
+  document.getElementById('nav').classList.remove('open');
+  const button=document.querySelector('.menubtn');button.setAttribute('aria-expanded','false');button.setAttribute('aria-label','開啟選單');
+}
 function go(v,id){
+  rememberCheckout();rememberPosition();
+  const previous=view;
+  const same=view===v&&(v!=='product'||cur===id);
   view=v; if(id) cur=id;
   if(v==='product'){curSpec=0;curQty=1;curPhoto=0;}
-  document.getElementById('nav').classList.remove('open');
-  document.querySelector('.menubtn').setAttribute('aria-expanded','false');
-  document.querySelector('.menubtn').setAttribute('aria-label','開啟選單');
-  render(); window.scrollTo({top:0,behavior:'instant'});
+  closeMenu();
+  if(!same){routeSerial=Date.now()+Math.random();history.pushState({...routeSnapshot(),returnToCatalog:v==='product'&&['home','shop'].includes(previous)},'',routeURL());}
+  render({preserveScroll:false}); window.scrollTo({top:0,behavior:'instant'});
   document.getElementById('app').focus({preventScroll:true});
 }
-function render(){
+function returnToCatalog(){if(history.state?.returnToCatalog)history.back();else go('shop');}
+function updateCartBadge(){
+  const n=cart.reduce((a,i)=>a+i.qty,0),badge=document.getElementById('cartBadge');
+  badge.textContent=n;badge.classList.toggle('hidden',n===0);
+  document.getElementById('cartButton').setAttribute('aria-label',`購物車，目前 ${n} 件`);
+}
+function render({preserveScroll=true}={}){
+  const scrollY=window.scrollY,filterScroll=document.querySelector('.filters')?.scrollLeft||0;
+  rememberCheckout();
   clearInterval(mqT); mqT=null;
   syncCart(); saveShopping();
+  document.body.dataset.view=view;
   const s=DB.settings;
   [['fabLine',s.lineUrl],['ftLine',s.lineUrl],['ftIg',s.igUrl]].forEach(([id,value])=>{
     const el=document.getElementById(id), url=safeUrl(value);
     el.href=url||'#'; el.hidden=!url;
   });
   document.querySelectorAll('nav.main button').forEach(b=>b.setAttribute('aria-current', b.dataset.v===view?'true':'false'));
-  const n=cart.reduce((a,i)=>a+i.qty,0), bd=document.getElementById('cartBadge');
-  bd.textContent=n; bd.classList.toggle('hidden', n===0);
+  updateCartBadge();
   const V={home:vHome,shop:vShop,product:vProduct,cart:vCart,checkout:vCheckout,done:vDone,about:vAbout,terms:vTerms,privacy:vPrivacy,admin:vAdmin};
   document.getElementById('app').innerHTML=(V[view]||vHome)();
+  restoreCheckout();
+  const filters=document.querySelector('.filters');if(filters)filters.scrollLeft=filterScroll;
   if(view==='admin') paintAdmin();
   if(view==='home') startMarquee();
+  if(preserveScroll)window.scrollTo({top:scrollY,behavior:'instant'});
 }
 
 function cardHtml(p){
@@ -204,10 +243,15 @@ function cardHtml(p){
 }
 function gridOf(list){
   return list.length?`<div class="grid">${list.map(p=>`<div style="position:relative">${cardHtml(p)}
-    <button class="card__fav" aria-pressed="${favs.includes(p.id)}" aria-label="${favs.includes(p.id)?'取消收藏':'收藏'}${esc(p.name)}" title="收藏" onclick="toggleFav(event,${arg(p.id)})">♥</button></div>`).join('')}</div>`
+    <button class="card__fav" data-favorite-id="${esc(p.id)}" aria-pressed="${favs.includes(p.id)}" aria-label="${favs.includes(p.id)?'取消收藏':'收藏'}${esc(p.name)}" title="收藏" onclick="toggleFav(event,${arg(p.id)})">♥</button></div>`).join('')}</div>`
   :`<div class="empty panel"><h3>這裡還沒有商品</h3><p>換個分類或關鍵字再看看。</p><button class="btn" onclick="filter='全部';kw='';go('shop')">看全部商品</button></div>`;
 }
-function toggleFav(e,id){e.stopPropagation();favs=favs.includes(id)?favs.filter(x=>x!==id):[...favs,id];render();}
+function toggleFav(e,id){
+  e.stopPropagation();favs=favs.includes(id)?favs.filter(x=>x!==id):[...favs,id];saveShopping();
+  if(view==='shop'&&filter==='收藏'){render();return;}
+  const p=DB.products.find(p=>p.id===id),selected=favs.includes(id);
+  document.querySelectorAll('[data-favorite-id]').forEach(button=>{if(button.dataset.favoriteId===id){button.setAttribute('aria-pressed',String(selected));button.setAttribute('aria-label',(selected?'取消收藏':'收藏')+p.name);}});
+}
 
 function vHome(){
   const s=DB.settings, L=live();
@@ -260,14 +304,13 @@ function vHome(){
 }
 let mqT=null;
 function startMarquee(){
+  if(document.hidden||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const el=document.getElementById('mq'); if(!el) return;
   const list=DB.settings.marquee||[]; if(list.length<2) return;
   let i=0; clearInterval(mqT);
-  mqT=setInterval(()=>{ i=(i+1)%list.length; el.style.opacity=0;
-    setTimeout(()=>{el.textContent=list[i];el.style.opacity=1;},240);
-  },3800);
-  el.style.transition='opacity .24s';
+  mqT=setInterval(()=>{i=(i+1)%list.length;el.textContent=list[i];},4800);
 }
+function selectFilter(value){filter=value;render();document.querySelectorAll('[data-filter]').forEach(button=>{if(button.dataset.filter===value)button.focus({preventScroll:true});});}
 
 function vShop(){
   const s=DB.settings;
@@ -275,7 +318,7 @@ function vShop(){
   if(filter==='收藏') list=list.filter(p=>favs.includes(p.id));
   else if(filter!=='全部') list=list.filter(p=>p.cat===filter);
   if(kw) list=list.filter(p=>(p.name+p.desc+p.detail).toLowerCase().includes(kw.toLowerCase()));
-  const chip=(v,label)=>`<button class="chip" aria-pressed="${filter===v}" onclick="filter=${arg(v)};render()">${esc(label)}</button>`;
+  const chip=(v,label)=>`<button class="chip" data-filter="${esc(v)}" aria-pressed="${filter===v}" onclick="selectFilter(${arg(v)})">${esc(label)}</button>`;
   return `<section class="blk"><div class="wrap">
     <div class="blk__hd"><h2>全部商品</h2><p>${list.length} 款${kw?`・關鍵字「${esc(kw)}」`:''}</p></div>
     <div class="filters">
@@ -295,31 +338,50 @@ function vProduct(){
   const validPhotos=(p.photos||[]).map(safeUrl).filter(Boolean);
   const photos=validPhotos.length?validPhotos:[null];
   return `<section class="blk"><div class="wrap">
-    <button class="btn btn--sm" style="margin-bottom:20px" onclick="go('shop')">回商品列表</button>
+    <button class="btn btn--sm" style="margin-bottom:20px" onclick="returnToCatalog()">回商品列表</button>
     <div class="pd">
       <div>
-        <div class="pd__main">${photos[curPhoto]?`<img src="${esc(photos[curPhoto])}" alt="${esc(p.name)}">`:artFor(p)}</div>
-        ${photos.length>1?`<div class="pd__thumbs">${photos.map((ph,i)=>`<button aria-pressed="${i===curPhoto}" onclick="curPhoto=${i};render()">${ph?`<img src="${esc(ph)}" alt="">`:''}</button>`).join('')}</div>`:''}
+        <div class="pd__main">${photos[curPhoto]?`<img src="${esc(photos[curPhoto])}" alt="${esc(p.name)}" width="600" height="600" decoding="async">`:artFor(p)}</div>
+        ${photos.length>1?`<div class="pd__thumbs">${photos.map((ph,i)=>`<button data-photo="${i}" aria-label="查看第 ${i+1} 張商品照片" aria-pressed="${i===curPhoto}" onclick="selectPhoto(${i})">${ph?`<img src="${esc(ph)}" alt="" width="62" height="62" loading="lazy" decoding="async">`:''}</button>`).join('')}</div>`:''}
       </div>
       <div>
         <div style="display:flex;gap:6px;margin-bottom:8px">${p.isNew?'<span class="tag tag--new">新品</span>':''}${p.hot?'<span class="tag tag--hot">熱銷</span>':''}<span class="tag">${esc(p.cat)}</span></div>
         <h1>${esc(p.name)}</h1>
-        <div class="price-big">${NT(price)}${p.orig?`<s>${NT(p.orig)}</s>`:''}</div>
+        <div class="price-big"><span id="product-price" aria-live="polite">${NT(price)}</span>${p.orig?`<s>${NT(p.orig)}</s>`:''}</div>
         <p style="font-size:0.96875rem">${esc(p.desc)}</p>
-        ${p.specs&&p.specs.length?`<div class="lbl">規格</div><div class="spec-row">${p.specs.map((x,i)=>`<button aria-pressed="${i===curSpec}" onclick="curSpec=${i};render()">${esc(x.n)}${x.d?`（+${NT(x.d)}）`:''}</button>`).join('')}</div>`:''}
+        ${p.specs&&p.specs.length?`<div class="lbl">規格</div><div class="spec-row">${p.specs.map((x,i)=>`<button data-spec="${i}" aria-pressed="${i===curSpec}" onclick="selectSpec(${i})">${esc(x.n)}${x.d?`（+${NT(x.d)}）`:''}</button>`).join('')}</div>`:''}
         <div class="lbl">數量</div>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <div class="qty"><button onclick="curQty=Math.max(1,curQty-1);render()" aria-label="減少" ${curQty<=1?'disabled':''}>−</button><span aria-live="polite">${curQty}</span><button onclick="curQty=curQty+1;render()" aria-label="增加" ${curQty>=available?'disabled':''}>＋</button></div>
-          <span style="font-size:0.84375rem;color:#6b5b4d">${p.stock===null?'不限量':out?'目前售完':`剩 ${p.stock} 份`}</span>
+          <div class="qty"><button id="product-minus" onclick="setProductQuantity(-1)" aria-label="減少數量" ${curQty<=1?'disabled':''}>−</button><span id="product-quantity" aria-live="polite">${curQty}</span><button id="product-plus" onclick="setProductQuantity(1)" aria-label="增加數量" ${curQty>=available?'disabled':''}>＋</button></div>
+          <span id="product-available" style="font-size:0.84375rem;color:#6b5b4d">${available>0?`可再加入 ${available} 份`:p.stock>0?'已達可加入數量':'目前售完'}</span>
         </div>
-        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
-          <button class="btn btn--primary" ${out?'disabled':''} onclick="addCart(${arg(p.id)})">${out&&p.stock>0?'已達可加入數量':'加入購物車'}</button>
-          <button class="btn" aria-pressed="${favs.includes(p.id)}" onclick="toggleFav(event,${arg(p.id)})">♥ 收藏</button>
+        <div class="product-actions" style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+          <button id="product-add" class="btn btn--primary" ${out?'disabled':''} onclick="addCart(${arg(p.id)})">${out&&p.stock>0?'已達可加入數量':'加入購物車'}</button>
+          <button class="btn" data-favorite-id="${esc(p.id)}" aria-pressed="${favs.includes(p.id)}" aria-label="${favs.includes(p.id)?'取消收藏':'收藏'}${esc(p.name)}" onclick="toggleFav(event,${arg(p.id)})">♥ 收藏</button>
         </div>
         <div class="pd__meta">${esc(p.detail)}</div>
       </div>
     </div>
   </div></section>`;
+}
+function updateProductControls(){
+  if(view!=='product')return;
+  const p=DB.products.find(p=>p.id===cur);if(!p)return;
+  const available=remaining(p),sp=(p.specs||[])[curSpec];
+  curQty=Math.max(1,Math.min(curQty,available||1));
+  document.getElementById('product-price').textContent=NT(p.price+(sp?sp.d:0));
+  document.getElementById('product-quantity').textContent=curQty;
+  document.getElementById('product-minus').disabled=curQty<=1;
+  document.getElementById('product-plus').disabled=curQty>=available;
+  document.getElementById('product-available').textContent=available>0?`可再加入 ${available} 份`:p.stock>0?'已達可加入數量':'目前售完';
+  const add=document.getElementById('product-add');add.disabled=available<=0;add.textContent=available>0?'加入購物車':p.stock>0?'已達可加入數量':'目前售完';
+}
+function setProductQuantity(delta){curQty+=delta;updateProductControls();}
+function selectSpec(index){curSpec=index;document.querySelectorAll('[data-spec]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.spec)===index)));updateProductControls();}
+function selectPhoto(index){
+  const p=DB.products.find(p=>p.id===cur),photos=(p?.photos||[]).map(safeUrl).filter(Boolean);if(!photos[index])return;
+  curPhoto=index;const image=document.querySelector('.pd__main img');if(image)image.src=photos[index];
+  document.querySelectorAll('[data-photo]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.photo)===index)));
 }
 function addCart(id){
   const p=DB.products.find(x=>x.id===id);
@@ -331,16 +393,16 @@ function addCart(id){
   const ex=cart.find(i=>i.key===key);
   if(ex) ex.qty+=qty;
   else cart.push({key,id,spec:sp?sp.n:'',price:p.price+(sp?sp.d:0),qty});
-  toast(`已加入購物車：${p.name}`); render();
+  syncCart();saveShopping();updateCartBadge();updateProductControls();toast(`已加入購物車：${p.name}`);
 }
 function setQty(key,d){
   const i=cart.find(x=>x.key===key); if(!i)return;
   const p=DB.products.find(x=>x.id===i.id);
   if(d>0 && (!p||remaining(p)<d)){toast('已達目前可加入的數量');return;}
   i.qty+=d; if(i.qty<=0) cart=cart.filter(x=>x.key!==key);
-  render();
+  updateCartView();
 }
-function removeCart(key){cart=cart.filter(i=>i.key!==key);render();}
+function removeCart(key){cart=cart.filter(i=>i.key!==key);updateCartView();}
 const subTotal=()=>cart.reduce((a,i)=>a+i.price*i.qty,0);
 const shipOf=t=>t>=DB.settings.freeOver?0:(t>0?DB.settings.shipFee:0);
 
@@ -350,38 +412,60 @@ function vCart(){
     <button class="btn btn--primary" onclick="go('shop')">去看商品</button></div></div></section>`;
   const st=subTotal(), sh=shipOf(st);
   return `<section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>購物車</h2><p>${cart.reduce((a,i)=>a+i.qty,0)} 件</p></div>
+    <div class="blk__hd"><h2>購物車</h2><p id="cart-count" aria-live="polite">${cart.reduce((a,i)=>a+i.qty,0)} 件</p></div>
     <div class="two">
-      <div class="panel" style="padding:6px 20px">
-        ${cart.map(i=>{const p=DB.products.find(x=>x.id===i.id);return `<div class="line">
+      <div id="cart-lines" class="panel" style="padding:6px 20px">
+        ${cart.map(i=>{const p=DB.products.find(x=>x.id===i.id);return `<div class="line" data-cart-key="${esc(i.key)}">
           <div class="line__im">${imgOf(p)}</div>
           <div><div class="line__nm">${esc(p.name)}</div>
             ${i.spec?`<div class="line__sp">${esc(i.spec)}</div>`:''}
-            <div class="line__sp">${NT(i.price)} × ${i.qty}</div>
-            <div class="qty" style="margin-top:8px;transform:scale(.82);transform-origin:left">
-              <button onclick="setQty(${arg(i.key)},-1)" aria-label="減少">−</button><span>${i.qty}</span><button onclick="setQty(${arg(i.key)},1)" aria-label="增加">＋</button></div>
+            <div class="line__sp" data-unit-price>${NT(i.price)} × ${i.qty}</div>
+            <div class="qty" style="margin-top:8px">
+              <button onclick="setQty(${arg(i.key)},-1)" aria-label="減少${esc(p.name)}數量">−</button><span data-quantity aria-live="polite">${i.qty}</span><button data-increase onclick="setQty(${arg(i.key)},1)" aria-label="增加${esc(p.name)}數量" ${remaining(p)<=0?'disabled':''}>＋</button></div>
           </div>
-          <div style="text-align:right"><b>${NT(i.price*i.qty)}</b><br>
+          <div style="text-align:right"><b data-line-total>${NT(i.price*i.qty)}</b><br>
             <button class="btn btn--sm" style="margin-top:8px" onclick="removeCart(${arg(i.key)})">移除</button></div>
         </div>`}).join('')}
       </div>
-      <div class="panel sum">
+      <div id="cart-summary" class="panel sum">${cartSummary()}</div>
+    </div>
+  </div></section>`;
+}
+function cartSummary(){
+  const st=subTotal(),sh=shipOf(st);
+  return `
         <div class="sum__r"><span>商品小計</span><b>${NT(st)}</b></div>
         <div class="sum__r"><span>運費</span><b>${sh?NT(sh):'免運'}</b></div>
         ${sh?`<div style="font-size:0.8125rem;color:var(--jerky)">再買 ${NT(DB.settings.freeOver-st)} 就免運</div>`:''}
         <div class="sum__r sum__r--tot"><span>應付金額</span><b>${NT(st+sh)}</b></div>
         <button class="btn btn--primary btn--full" style="margin-top:16px" onclick="go('checkout')">試用寄送流程</button>
         <button class="btn btn--full btn--sm" style="margin-top:10px" onclick="go('shop')">繼續逛</button>
-      </div>
-    </div>
-  </div></section>`;
+      `;
+}
+function updateCartView(){
+  syncCart();saveShopping();updateCartBadge();
+  if(view!=='cart')return;
+  if(!cart.length){render();document.getElementById('app').focus({preventScroll:true});return;}
+  const focused=document.activeElement;
+  document.querySelectorAll('[data-cart-key]').forEach(row=>{
+    const item=cart.find(i=>i.key===row.dataset.cartKey);
+    if(!item){row.remove();return;}
+    const product=DB.products.find(p=>p.id===item.id);
+    row.querySelector('[data-quantity]').textContent=item.qty;
+    row.querySelector('[data-unit-price]').textContent=NT(item.price)+' × '+item.qty;
+    row.querySelector('[data-line-total]').textContent=NT(item.price*item.qty);
+    row.querySelector('[data-increase]').disabled=remaining(product)<=0;
+  });
+  document.getElementById('cart-count').textContent=cart.reduce((n,i)=>n+i.qty,0)+' 件';
+  document.getElementById('cart-summary').innerHTML=cartSummary();
+  if(focused&&!focused.isConnected)document.querySelector('#cart-lines button')?.focus({preventScroll:true});
 }
 
 function vCheckout(){
   if(!cart.length) return vCart();
   const st=subTotal(), sh=shipOf(st);
   return `<section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>寄送流程預覽</h2><p>請使用測試資料；不會建立正式訂單或寄送 Email</p></div>
+    <div class="blk__hd"><h2>寄送與貨到付款</h2><p>請使用測試資料；不會建立正式訂單或寄送 Email</p></div>
     <div class="two">
       <div class="panel" style="padding:24px">
         <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="off" placeholder="例：王小明（測試）"></div>
@@ -395,15 +479,22 @@ function vCheckout(){
         </div>
         <div class="field" id="wrap-addr"><label for="f-addr">宅配地址</label><input id="f-addr" autocomplete="street-address" placeholder="含郵遞區號"></div>
         <div class="field hidden" id="wrap-store"><label for="f-store">取貨門市</label><input id="f-store" placeholder="例：7-ELEVEN 板橋門市 / 店號"></div>
+        <div class="field"><span class="field-label">付款方式</span>
+          <div class="payment-choice" aria-label="付款方式：貨到付款">
+            <span class="payment-check" aria-hidden="true">✓</span>
+            <span><b>貨到付款</b><small id="payment-note">商品送達時，直接向配送人員付款。</small></span>
+          </div>
+        </div>
         <div class="field"><label for="f-note">訂單備註</label><textarea id="f-note" placeholder="口味指定、指定到貨日等"></textarea></div>
         <div id="ckErr"></div>
-        <button class="btn btn--primary btn--full" onclick="submitOrder()">產生預覽明細</button>
+        <button class="btn btn--primary btn--full" onclick="submitOrder()">確認貨到付款預覽</button>
         <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">試填資料只在本次開啟頁面期間保留，不會傳給商家，也不會扣款。</p>
       </div>
       <div class="panel sum">
         <h3 style="font-size:1.0625rem;margin-bottom:10px">訂單內容</h3>
         ${cart.map(i=>{const p=DB.products.find(x=>x.id===i.id);return `<div class="sum__r"><span>${esc(p.name)}${i.spec?`・${esc(i.spec)}`:''} ×${i.qty}</span><b>${NT(i.price*i.qty)}</b></div>`}).join('')}
         <div class="sum__r"><span>運費</span><b>${sh?NT(sh):'免運'}</b></div>
+        <div class="sum__r"><span>付款方式</span><b>貨到付款</b></div>
         <div class="sum__r sum__r--tot"><span>應付金額</span><b>${NT(st+sh)}</b></div>
       </div>
     </div>
@@ -413,13 +504,14 @@ function toggleShip(){
   const home=document.querySelector('input[name=ship]:checked').value==='宅配到府';
   document.getElementById('wrap-addr').classList.toggle('hidden',!home);
   document.getElementById('wrap-store').classList.toggle('hidden',home);
+  const note=document.getElementById('payment-note');if(note)note.textContent=home?'商品送達時，直接向配送人員付款。':'到指定超商取貨時，於門市付款。';
 }
 let lastOrder=null;
 async function submitOrder(){
   if(!cart.length) return;
   const g=id=>document.getElementById(id).value.trim();
   const ship=document.querySelector('input[name=ship]:checked').value;
-  const o={name:g('f-name'),tel:g('f-tel'),mail:g('f-mail'),ship,
+  const o={name:g('f-name'),tel:g('f-tel'),mail:g('f-mail'),ship,pay:'貨到付款',
     addr:ship==='宅配到府'?g('f-addr'):g('f-store'),note:g('f-note')};
   const miss=[];
   if(!o.name) miss.push('收件人姓名');
@@ -431,13 +523,13 @@ async function submitOrder(){
   const st=subTotal(), sh=shipOf(st);
   const no='PREVIEW-'+Date.now().toString(36).toUpperCase()+'-'+String(DB.orders.length+1).padStart(2,'0');
   const order={no,...o,items:cart.map(i=>({...i,name:DB.products.find(x=>x.id===i.id).name})),
-    sub:st,fee:sh,total:st+sh,status:'待付款',at:new Date().toISOString()};
+    sub:st,fee:sh,total:st+sh,status:'待確認',at:new Date().toISOString()};
   DB.orders.unshift(order);
-  lastOrder=order; cart=[]; go('done');
+  lastOrder=order; cart=[]; go('done');checkoutDraft={};
 }
 function orderText(o){
   return ['貳恭 ER GONG 預覽明細（非正式訂單）','預覽編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,
-    '配送：'+o.ship+'／'+o.addr,'—',
+    '配送：'+o.ship+'／'+o.addr,'付款：'+(o.pay||'貨到付款'),'—',
     ...o.items.map(i=>`${i.name}${i.spec?'・'+i.spec:''} ×${i.qty}　${NT(i.price*i.qty)}`),
     '運費：'+(o.fee?NT(o.fee):'免運'),'應付金額：'+NT(o.total),
     o.note?'備註：'+o.note:''].filter(Boolean).join('\n');
@@ -448,9 +540,10 @@ function vDone(){
     <h2>預覽明細已產生</h2>
     <div class="ordno">${o.no}</div>
     <p style="margin:0">試算金額 <b style="font-size:1.375rem">${NT(o.total)}</b></p>
+    <p class="done-payment">付款方式：<b>${esc(o.pay||'貨到付款')}</b></p>
     <div class="steps">
       <b>這是購物流程的設計預覽</b>
-      沒有建立正式訂單、沒有扣款，也不會安排出貨。
+      沒有建立正式訂單，也不會安排出貨。正式啟用後，顧客會在宅配送達或超商取貨時付款。
       <b>可以繼續試用</b>
       下方可複製預覽明細；頁尾的「後台操作預覽」可以查看這筆示範資料。重新整理頁面後，試填的寄送資料會清除。
     </div>
@@ -507,8 +600,8 @@ function vTerms(){
     </ul>
     <h4>付款</h4>
     <ul>
-      <li>目前網站為設計預覽，尚未開放線上付款。</li>
-      <li>如需詢問實際購買方式，請透過 LINE 聯繫貳恭。</li>
+      <li>付款方式為貨到付款：宅配送達時向配送人員付款，或於指定超商取貨時付款。</li>
+      <li>目前網站為設計預覽，送出資料不會建立正式訂單。</li>
     </ul>
     <h4>發票</h4>
     <ul><li>需要統編請於訂單備註填寫公司名稱與統編。</li></ul>
@@ -569,13 +662,13 @@ function paintAdmin(){
   el.innerHTML=({sum:aSum,prod:aProd,ord:aOrd,set:aSet}[admView]||aSum)();
 }
 function aSum(){
-  const o=DB.orders, rev=o.filter(x=>x.status!=='待付款').reduce((a,x)=>a+x.total,0);
+  const o=DB.orders, rev=o.filter(x=>x.status==='已完成').reduce((a,x)=>a+x.total,0);
   const low=DB.products.filter(p=>p.stock!==null&&p.stock<=5&&p.active);
   return `<h3 style="font-size:1.25rem;margin-bottom:16px">總覽</h3>
   <div class="kpis">
     <div class="kpi"><b>${o.length}</b><span>示範訂單</span></div>
-    <div class="kpi"><b>${o.filter(x=>x.status==='待付款').length}</b><span>待付款</span></div>
-    <div class="kpi"><b>${NT(rev)}</b><span>示範已付款金額</span></div>
+    <div class="kpi"><b>${o.filter(x=>x.status==='待確認').length}</b><span>待確認</span></div>
+    <div class="kpi"><b>${NT(rev)}</b><span>示範完成金額</span></div>
     <div class="kpi"><b>${DB.products.filter(p=>p.active).length}</b><span>上架商品</span></div>
   </div>
   ${low.length?`<div class="note" style="margin-bottom:18px"><b>庫存快沒了：</b>${low.map(p=>`${esc(p.name)}（${p.stock}）`).join('、')}</div>`:''}
@@ -584,7 +677,7 @@ function aSum(){
   <tbody>${o.slice(0,6).map(x=>`<tr><td><b>${x.no}</b></td><td>${esc(x.name)}</td><td>${NT(x.total)}</td><td>${statTag(x.status)}</td></tr>`).join('')}</tbody></table></div>`
   :'<p style="color:#6b5b4d">還沒有訂單。前台送一筆測試訂單就會出現在這裡。</p>'}`;
 }
-const statTag=s=>`<span class="stat ${({'待付款':'s-wait','已付款':'s-paid','已出貨':'s-ship','已完成':'s-done'})[s]}">${s}</span>`;
+const statTag=s=>`<span class="stat ${({'待確認':'s-wait','備貨中':'s-paid','已出貨':'s-ship','已完成':'s-done'})[s]||'s-wait'}">${s}</span>`;
 
 function aProd(){
   return `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
@@ -691,7 +784,7 @@ function aOrd(){
       <td>${esc(o.name)}<br><span style="font-size:0.75rem;color:#6b5b4d">${esc(o.tel)}</span></td>
       <td>${NT(o.total)}</td>
       <td><select onchange="setStatus('${o.no}',this.value)" style="border:2px solid var(--ink);background:var(--paper-lt);padding:5px;font-family:inherit">
-        ${['待付款','已付款','已出貨','已完成'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+        ${['待確認','備貨中','已出貨','已完成'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
       <td><button class="btn btn--sm" onclick="showOrder('${o.no}')">明細</button></td></tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -710,9 +803,7 @@ function aSet(){
   <div class="field"><label for="s-line">LINE 官方帳號加好友連結</label><input id="s-line" value="${esc(safeUrl(s.lineUrl))}">
     <small>在 LINE Official Account Manager →「加入好友網址」複製，格式像 https://line.me/R/ti/p/@你的ID</small></div>
   <div class="field"><label for="s-ig">Instagram 連結</label><input id="s-ig" value="${esc(safeUrl(s.igUrl))}"></div>
-  <div class="field"><label for="s-pay">付款連結欄位（預覽不啟用）</label><input id="s-pay" value="${esc(s.payUrl)}" placeholder="貼上金流後台產生的付款連結">
-    <small>此欄位僅供設定畫面預覽，目前不會開啟付款頁。</small></div>
-  <div class="field"><label for="s-hint">付款頁提示文字</label><input id="s-hint" value="${esc(s.payHint)}"></div>
+  <div class="field"><span class="field-label">付款方式</span><div class="payment-choice"><span class="payment-check" aria-hidden="true">✓</span><span><b>貨到付款</b><small>目前唯一提供的付款方式</small></span></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     <div class="field"><label for="s-fee">運費</label><input id="s-fee" inputmode="numeric" value="${s.shipFee}"></div>
     <div class="field"><label for="s-free">免運門檻</label><input id="s-free" inputmode="numeric" value="${s.freeOver}"></div>
@@ -725,13 +816,13 @@ function aSet(){
 }
 async function saveSet(){
   const g=id=>document.getElementById(id).value;
-  const urls=['s-line','s-ig','s-pay'];
+  const urls=['s-line','s-ig'];
   if(urls.some(id=>g(id).trim()&&!safeUrl(g(id).trim()))){toast('連結請使用有效的 http 或 https 網址');return;}
   const fee=Number(g('s-fee')),free=Number(g('s-free'));
   if(!Number.isSafeInteger(fee)||fee<0||!Number.isSafeInteger(free)||free<0){toast('運費與免運門檻請填零或正整數');return;}
   if(!g('s-cats').split('\n').some(x=>x.trim())){toast('請保留至少一個商品分類');return;}
   Object.assign(DB.settings,{
-    lineUrl:g('s-line').trim(),igUrl:g('s-ig').trim(),payUrl:g('s-pay').trim(),payHint:g('s-hint').trim(),
+    lineUrl:g('s-line').trim(),igUrl:g('s-ig').trim(),payUrl:'',payHint:'貨到付款',
     shipFee:Number(g('s-fee'))||0,freeOver:Number(g('s-free'))||0,
     cats:g('s-cats').split('\n').map(x=>x.trim()).filter(Boolean),
     marquee:g('s-mq').split('\n').map(x=>x.trim()).filter(Boolean),
@@ -747,12 +838,14 @@ function modal(html){
   const title=host.querySelector('h3');
   if(title){title.id='modal-title';host.setAttribute('aria-labelledby','modal-title');}
   else host.removeAttribute('aria-labelledby');
-  if(!host.open) host.showModal();
+  closeMenu();
+  if(!host.open)host.showModal();
+  document.body.classList.add('modal-open');
   document.body.style.overflow='hidden';
 }
 function closeModal(){document.getElementById('modalHost').close();}
 const modalHost=document.getElementById('modalHost');
-modalHost.addEventListener('close',()=>{document.body.style.overflow='';});
+modalHost.addEventListener('close',()=>{document.body.style.overflow='';document.body.classList.remove('modal-open');});
 modalHost.addEventListener('click',e=>{if(e.target!==modalHost)return;const r=modalHost.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();});
 function toggleMenu(){const nav=document.getElementById('nav'),open=nav.classList.toggle('open');const button=document.querySelector('.menubtn');button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-label',open?'關閉選單':'開啟選單');}
 let tT=null;
@@ -762,10 +855,38 @@ function toast(msg){
   const d=document.createElement('div'); d.className='toast'; d.textContent=msg;d.setAttribute('role','status');d.setAttribute('aria-live','polite');
   document.body.appendChild(d); tT=setTimeout(()=>d.remove(),2100);
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(modalHost.open)closeModal();else closeMenu();}});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('header.bar'))closeMenu();},{passive:true});
+document.addEventListener('visibilitychange',()=>{clearInterval(mqT);mqT=null;if(!document.hidden&&view==='home')startMarquee();});
+let scrollFrame=0;
+window.addEventListener('scroll',()=>{if(scrollFrame)return;scrollFrame=requestAnimationFrame(()=>{pageScroll.set(routeSerial,window.scrollY);scrollFrame=0;});},{passive:true});
+window.addEventListener('popstate',event=>{
+  rememberCheckout();pageScroll.set(routeSerial,window.scrollY);closeMenu();
+  if(modalHost.open)closeModal();
+  const state=event.state;
+  if(!state?.ergong){readRoute();routeSerial=Date.now()+Math.random();history.replaceState(routeSnapshot(),'',routeURL());}
+  else{
+    routeSerial=state.route;view=pageViews.includes(state.view)?state.view:'home';cur=state.cur;filter=state.filter||'全部';kw=state.kw||'';curSpec=state.curSpec||0;curQty=state.curQty||1;curPhoto=state.curPhoto||0;
+    if(view==='admin'&&!isAdmin)view='home';
+    if(view==='done'&&!lastOrder)view='cart';
+  }
+  render({preserveScroll:false});
+  const top=pageScroll.get(routeSerial)||0;
+  window.scrollTo({top,behavior:'instant'});document.getElementById('app').focus({preventScroll:true});
+});
+function readRoute(){
+  const [requested,product]=location.hash.slice(1).split('=');
+  view=pageViews.includes(requested)?requested:'home';
+  if(view==='product'){try{cur=decodeURIComponent(product||'');}catch(e){cur=null;}if(!DB.products.some(p=>p.id===cur&&p.active))view='shop';}
+  if(view==='admin'&&!isAdmin)view='home';
+  if(view==='done'&&!lastOrder)view='cart';
+}
 
 (async function init(){
   await store.load();
   try{const saved=JSON.parse(localStorage.getItem(SHOP_KEY)||'null');if(saved){cart=Array.isArray(saved.cart)?saved.cart:[];favs=Array.isArray(saved.favs)?saved.favs:[];}}catch(e){}
-  render();
+  readRoute();
+  if('scrollRestoration' in history)history.scrollRestoration='manual';
+  routeSerial=Date.now()+Math.random();history.replaceState(routeSnapshot(),'',routeURL());
+  render({preserveScroll:false});
 })();
