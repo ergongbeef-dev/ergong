@@ -308,11 +308,11 @@ function vHome(){
       <div class="panel" style="padding:26px 28px">
         <h2 style="font-size:1.6875rem">關於貳恭</h2>
         <div class="diamond">◆ ◇ ◆</div>
-        <div style="white-space:pre-line;font-size:0.96875rem">${esc(s.about)}</div>
+        <div class="readable-copy">${esc(s.about)}</div>
       </div>
-      <div class="panel" style="padding:22px">
+      <div class="panel purchase-card" style="padding:22px">
         <h3 style="font-size:1.1875rem;margin-bottom:12px">買之前先知道</h3>
-        <ul style="padding-left:18px;font-size:0.90625rem;margin:0">
+        <ul class="readable-list" style="padding-left:18px;margin:0">
           <li>接單後製作，出貨約 3–5 個工作日。</li>
           <li>超商冷凍取貨，滿 ${NT(s.freeOver)} 免運，未滿收 ${NT(s.shipFee)}。</li>
           <li>收到商品如有異常，請保留照片並聯繫我們。</li>
@@ -602,7 +602,7 @@ function vAbout(){
   const s=DB.settings;
   return `<section class="blk"><div class="wrap doc">
     <h2>關於貳恭</h2><div class="diamond">◆ ◇ ◆</div>
-    <div style="white-space:pre-line;font-size:1rem">${esc(s.about)}</div>
+    <div class="readable-copy">${esc(s.about)}</div>
     <div class="note" style="margin-top:26px">
       有問題最快是 LINE 私訊，或到 Instagram 找我們。
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
@@ -615,7 +615,7 @@ function vAbout(){
 function vTerms(){
   const s=DB.settings;
   return `<section class="blk"><div class="wrap doc">
-    <h2>購買須知</h2><p style="color:var(--jerky);font-weight:700;margin-top:4px">下單前請先看過</p><div class="diamond">◆ ◇ ◆</div>
+    <h2>購買須知</h2><p class="section-kicker">下單前請先看過</p><div class="diamond">◆ ◇ ◆</div>
     <h4>製作與出貨</h4>
     <ul>
       <li>全品項為接單後製作，一般 3–5 個工作日內出貨；遇連假或大量訂單會於 LINE 公告。</li>
@@ -719,7 +719,7 @@ function aSum(){
   <tbody>${o.slice(0,6).map(x=>`<tr><td><b>${x.no}</b></td><td>${esc(x.name)}</td><td>${NT(x.total)}</td><td>${statTag(x.status)}</td></tr>`).join('')}</tbody></table></div>`
   :'<p style="color:#6b5b4d">還沒有訂單。客人送出訂單後會出現在這裡。</p>'}`;
 }
-const statTag=s=>`<span class="stat ${({'待確認':'s-wait','備貨中':'s-paid','已出貨':'s-ship','已完成':'s-done'})[s]||'s-wait'}">${s}</span>`;
+const statTag=s=>`<span class="stat ${({'待確認':'s-wait','備貨中':'s-paid','已出貨':'s-ship','已完成':'s-done','已取消':'s-cancel'})[s]||'s-wait'}">${s}</span>`;
 
 function aProd(){
   return `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
@@ -736,8 +736,9 @@ function aProd(){
       <td>${p.active?'<span class="stat s-paid">上架</span>':'<span class="stat s-done">下架</span>'}</td>
       <td><div class="row-act">
         <button class="btn btn--sm" onclick="editProd(${arg(p.id)})">編輯</button>
+        <button class="btn btn--sm" onclick="copyProd(${arg(p.id)})">複製</button>
         <button class="btn btn--sm" onclick="toggleActive(${arg(p.id)})">${p.active?'下架':'上架'}</button>
-        <button class="btn btn--sm" onclick="delProd(${arg(p.id)})">刪除</button>
+        <button class="btn btn--sm btn--danger" title="刪除商品" aria-label="刪除商品 ${esc(p.name)}" onclick="delProd(${arg(p.id)})">刪除</button>
       </div></td></tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -758,6 +759,31 @@ async function doDel(id){
   DB.products=DB.products.filter(x=>x.id!==id);
   if(await store.save()){closeModal();render();savedToast('商品已刪除');}
   else{DB.products=previous;render();}
+}
+function uniqueCopyName(name){
+  const base=String(name||'未命名商品').replace(/（副本(?: \d+)?）$/,'');
+  let next=`${base}（副本）`, n=2;
+  const names=new Set(DB.products.map(p=>p.name));
+  while(names.has(next)){next=`${base}（副本 ${n}）`;n+=1;}
+  return next;
+}
+async function copyProd(id){
+  const src=DB.products.find(x=>x.id===id);
+  if(!src){toast('找不到要複製的商品');return;}
+  const previous=DB.products.slice();
+  const copy=JSON.parse(JSON.stringify(src));
+  copy.id='p'+Date.now()+Math.floor(Math.random()*1000);
+  copy.name=uniqueCopyName(src.name);
+  copy.active=false;
+  DB.products.unshift(copy);
+  if(await store.save()){
+    render();
+    editProd(copy.id);
+    savedToast('商品已複製，副本目前為下架狀態');
+  }else{
+    DB.products=previous;
+    render();
+  }
 }
 
 function editProd(id){
@@ -838,7 +864,7 @@ function aOrd(){
       <td>${esc(o.name)}<br><span style="font-size:0.75rem;color:#6b5b4d">${esc(o.tel)}</span></td>
       <td>${NT(o.total)}</td>
       <td><select onchange="setStatus('${o.no}',this.value)" style="border:2px solid var(--ink);background:var(--paper-lt);padding:5px;font-family:inherit">
-        ${['待確認','備貨中','已出貨','已完成'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+        ${['待確認','備貨中','已出貨','已完成','已取消'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
       <td><button class="btn btn--sm" onclick="showOrder('${o.no}')">明細</button></td></tr>`).join('')}</tbody>
   </table></div>`;
 }

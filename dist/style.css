@@ -49,6 +49,8 @@ h1,h2,h3,h4{margin:0;line-height:1.12;font-weight:900;letter-spacing:-.01em}
 .btn--green{background:var(--green);color:#fff}
 .btn--line{background:#06C755;color:#fff}
 .btn--sm{padding:7px 13px;font-size:0.8125rem;box-shadow:3px 3px 0 var(--ink)}
+.btn--danger{background:#f2c2b8;color:var(--ink)}
+.btn--danger:hover{background:#eaa79a}
 .btn--full{width:100%}
 .btn[disabled]{opacity:.4;pointer-events:none}
 .tag{display:inline-block;border:2px solid var(--ink);padding:1px 8px;font-size:0.75rem;font-weight:900;background:#fff}
@@ -181,6 +183,10 @@ section.blk{padding:44px 0}
 .payment-check{width:28px;height:28px;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:var(--orange);font-weight:900}
 .err{color:#B3261E;font-size:0.8125rem;font-weight:700;margin-top:4px}
 .note{border:3px solid var(--ink);padding:14px 16px;font-size:0.9375rem;line-height:1.8;background:#fff3d9;box-shadow:3px 3px 0 var(--ink);color:#1c1511}
+.readable-copy{white-space:pre-line;font-size:1.0625rem;line-height:2;color:var(--ink);font-weight:600}
+.purchase-card{color:var(--ink)}
+.readable-list{font-size:1rem;line-height:1.95;color:var(--ink);font-weight:600}
+.section-kicker{color:var(--ink);font-size:1rem;font-weight:900;line-height:1.7;margin-top:6px}
 
 /* ---------- text pages ---------- */
 .doc{max-width:760px}
@@ -232,7 +238,7 @@ th{font-size:0.75rem;color:var(--jerky);font-weight:900}
 .tbl-wrap{overflow-x:auto}
 .row-act{display:flex;gap:6px;flex-wrap:wrap}
 .stat{display:inline-block;border:2px solid var(--ink);padding:1px 8px;font-size:0.75rem;font-weight:900}
-.s-wait{background:#FFE9C9}.s-paid{background:#CFE8D6}.s-ship{background:#D5E4F3}.s-done{background:#E3E3E3}
+.s-wait{background:#FFE9C9}.s-paid{background:#CFE8D6}.s-ship{background:#D5E4F3}.s-done{background:#E3E3E3}.s-cancel{background:#f2c2b8;color:#5c1d13}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:22px}
 .kpi{border:var(--bd);padding:14px;background:var(--paper)}
 .kpi b{display:block;font-family:"Anton",sans-serif;font-size:1.625rem;line-height:1.1}
