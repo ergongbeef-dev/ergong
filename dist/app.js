@@ -247,7 +247,7 @@ function render({preserveScroll=true}={}){
 
 function cardHtml(p){
   const fav=favs.includes(p.id), out=p.stock!==null&&p.stock<=0;
-  return `<button class="card" onclick="go('product',${arg(p.id)})">
+  return `<article class="card">
     <div class="card__img">${imgOf(p)}
       <div class="card__tags">${p.isNew?'<span class="tag tag--new">新品</span>':''}${p.hot?'<span class="tag tag--hot">熱銷</span>':''}</div>
       ${out?'<div class="soldout">已售完</div>':''}
@@ -256,8 +256,9 @@ function cardHtml(p){
       <div class="card__nm">${esc(p.name)}</div>
       <div class="card__ds">${esc(p.desc)}</div>
       <div class="card__pr">${NT(p.price)}${p.orig?`<s>${NT(p.orig)}</s>`:''}</div>
+      <button class="btn btn--sm card__go" onclick="go('product',${arg(p.id)})">看詳細</button>
     </div>
-  </button>
+  </article>
   <span style="display:none">${fav}</span>`.replace('<span style="display:none">'+fav+'</span>','');
 }
 function gridOf(list){
@@ -367,12 +368,12 @@ function vProduct(){
         <div style="display:flex;gap:6px;margin-bottom:8px">${p.isNew?'<span class="tag tag--new">新品</span>':''}${p.hot?'<span class="tag tag--hot">熱銷</span>':''}<span class="tag">${esc(p.cat)}</span></div>
         <h1>${esc(p.name)}</h1>
         <div class="price-big"><span id="product-price" aria-live="polite">${NT(price)}</span>${p.orig?`<s>${NT(p.orig)}</s>`:''}</div>
-        <p style="font-size:0.96875rem">${esc(p.desc)}</p>
+        <p class="intro-note">${esc(p.desc)}</p>
         ${p.specs&&p.specs.length?`<div class="lbl">規格</div><div class="spec-row">${p.specs.map((x,i)=>`<button data-spec="${i}" aria-pressed="${i===curSpec}" onclick="selectSpec(${i})">${esc(x.n)}${x.d?`（+${NT(x.d)}）`:''}</button>`).join('')}</div>`:''}
         <div class="lbl">數量</div>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <div class="qty"><button id="product-minus" onclick="setProductQuantity(-1)" aria-label="減少數量" ${curQty<=1?'disabled':''}>−</button><span id="product-quantity" aria-live="polite">${curQty}</span><button id="product-plus" onclick="setProductQuantity(1)" aria-label="增加數量" ${curQty>=available?'disabled':''}>＋</button></div>
-          <span id="product-available" style="font-size:0.84375rem;color:#6b5b4d">${available>0?`可再加入 ${available} 份`:p.stock>0?'已達可加入數量':'目前售完'}</span>
+          <span id="product-available" class="stock-note">${available>0?`可再加入 ${available} 份`:p.stock>0?'已達可加入數量':'目前售完'}</span>
         </div>
         <div class="product-actions" style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
           <button id="product-add" class="btn btn--primary" ${out?'disabled':''} onclick="addCart(${arg(p.id)})">${out&&p.stock>0?'已達可加入數量':'加入購物車'}</button>
@@ -910,7 +911,7 @@ function modal(html){
 function closeModal(){document.getElementById('modalHost').close();}
 const modalHost=document.getElementById('modalHost');
 modalHost.addEventListener('close',()=>{document.body.style.overflow='';document.body.classList.remove('modal-open');});
-modalHost.addEventListener('click',e=>{if(e.target!==modalHost)return;const r=modalHost.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();});
+modalHost.addEventListener('click',e=>{if(e.target===modalHost)e.preventDefault();});
 function toggleMenu(){const nav=document.getElementById('nav'),open=nav.classList.toggle('open');const button=document.querySelector('.menubtn');button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-label',open?'關閉選單':'開啟選單');}
 let tT=null;
 function toast(msg){
