@@ -1,6 +1,6 @@
 
-/* Local brand-preview data. This is not a shared store or order backend. */
-const KEY = 'ergong:brand-preview:v1';
+/* Local storefront data. Orders still require LINE confirmation from the shop. */
+const KEY = 'ergong:storefront:v2';
 const SHOP_KEY = KEY + ':shopping';
 let DB = null;
 let storageAvailable = true;
@@ -463,12 +463,12 @@ function vCheckout(){
   if(!cart.length) return vCart();
   const st=subTotal(), sh=shipOf(st);
   return `<section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>超商取貨與貨到付款</h2><p>請使用測試資料；不會建立正式訂單或寄送 Email</p></div>
+    <div class="blk__hd"><h2>超商取貨與貨到付款</h2><p>送出後請把訂單明細傳到 LINE，收到回覆確認後才算成立。</p></div>
     <div class="two">
       <div class="panel" style="padding:24px">
-        <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="off" placeholder="例：王小明（測試）"></div>
+        <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="name" placeholder="例：王小明"></div>
         <div class="field"><label for="f-tel">手機號碼</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxx"></div>
-        <div class="field"><label for="f-mail">Email</label><input id="f-mail" type="email" autocomplete="off" placeholder="preview@example.com"><small>欄位僅供試填，這版不會寄送通知。</small></div>
+        <div class="field"><label for="f-mail">Email</label><input id="f-mail" type="email" autocomplete="email" placeholder="you@example.com"><small>目前不會自動寄信，主要用於訂單聯絡。</small></div>
         <div class="field"><span class="field-label">配送方式</span>
           <div class="payment-choice" aria-label="配送方式：超商冷凍取貨">
             <span class="payment-check" aria-hidden="true">✓</span>
@@ -484,8 +484,8 @@ function vCheckout(){
         </div>
         <div class="field"><label for="f-note">訂單備註</label><textarea id="f-note" placeholder="口味指定、指定到貨日等"></textarea></div>
         <div id="ckErr"></div>
-        <button class="btn btn--primary btn--full" onclick="submitOrder()">確認超商貨到付款預覽</button>
-        <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">試填資料只在本次開啟頁面期間保留，不會傳給商家，也不會扣款。</p>
+        <button class="btn btn--primary btn--full" onclick="submitOrder()">產生訂單明細</button>
+        <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">資料會先在你的裝置產生，請務必傳到 LINE 讓我們確認；不會在線上扣款。</p>
       </div>
       <div class="panel sum">
         <h3 style="font-size:1.0625rem;margin-bottom:10px">訂單內容</h3>
@@ -516,46 +516,54 @@ async function submitOrder(){
   const box=document.getElementById('ckErr');
   if(miss.length){ box.innerHTML=`<div class="err">還缺：${miss.join('、')}</div>`; box.scrollIntoView({block:'center'}); return; }
   const st=subTotal(), sh=shipOf(st);
-  const no='PREVIEW-'+Date.now().toString(36).toUpperCase()+'-'+String(DB.orders.length+1).padStart(2,'0');
+  const no='EG-'+Date.now().toString(36).toUpperCase()+'-'+String(DB.orders.length+1).padStart(2,'0');
   const order={no,...o,items:cart.map(i=>({...i,name:DB.products.find(x=>x.id===i.id).name})),
     sub:st,fee:sh,total:st+sh,status:'待確認',at:new Date().toISOString()};
   DB.orders.unshift(order);
   lastOrder=order; cart=[]; go('done');checkoutDraft={};
 }
 function orderText(o){
-  return ['貳恭 ER GONG 預覽明細（非正式訂單）','預覽編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,
+  return ['貳恭 ER GONG 訂單明細','訂單編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,'Email：'+o.mail,
     '配送：'+o.ship+'／'+o.addr,'付款：'+(o.pay||'超商貨到付款'),'—',
     ...o.items.map(i=>`${i.name}${i.spec?'・'+i.spec:''} ×${i.qty}　${NT(i.price*i.qty)}`),
     '運費：'+(o.fee?NT(o.fee):'免運'),'應付金額：'+NT(o.total),
-    o.note?'備註：'+o.note:''].filter(Boolean).join('\n');
+    o.note?'備註：'+o.note:'','請回覆確認庫存與出貨日期，謝謝。'].filter(Boolean).join('\n');
 }
 function vDone(){
   const o=lastOrder; if(!o) return vHome();
+  const line=safeUrl(DB.settings.lineUrl);
   return `<section class="blk"><div class="wrap"><div class="panel done">
-    <h2>預覽明細已產生</h2>
+    <h2>訂單明細已產生</h2>
     <div class="ordno">${o.no}</div>
-    <p style="margin:0">試算金額 <b style="font-size:1.375rem">${NT(o.total)}</b></p>
+    <p style="margin:0">應付金額 <b style="font-size:1.375rem">${NT(o.total)}</b></p>
     <p class="done-payment">付款方式：<b>${esc(o.pay||'超商貨到付款')}</b></p>
     <div class="steps">
-      <b>這是購物流程的設計預覽</b>
-      沒有建立正式訂單，也不會安排出貨。正式啟用後，顧客會到指定超商取貨並於門市付款。
-      <b>可以繼續試用</b>
-      下方可複製預覽明細；頁尾的「後台操作預覽」可以查看這筆示範資料。重新整理頁面後，試填的取貨資料會清除。
+      <b>下一步</b>
+      請複製訂單明細並傳到貳恭 LINE，收到我們回覆確認後，訂單才會正式成立。
+      <b>付款方式</b>
+      顧客到指定超商取貨時，於門市付款。
     </div>
     <div style="margin-top:22px;text-align:left">
-      <div class="lbl">預覽明細</div>
+      <div class="lbl">訂單明細</div>
       <div class="copybox" id="ordTx">${esc(orderText(o))}</div>
       <div style="display:flex;gap:10px;margin-top:10px">
-        <button class="btn btn--sm" onclick="copyOrder()">複製明細</button>
+        <button class="btn btn--primary btn--sm" onclick="sendLineOrder()">複製並開啟 LINE</button>
+        <button class="btn btn--sm" onclick="copyOrder()">只複製明細</button>
         <button class="btn btn--sm" onclick="go('shop')">繼續逛</button>
       </div>
+      ${line?`<p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">若 LINE 沒有自動貼上，請手動貼上剛剛複製的訂單明細。</p>`:`<p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">尚未設定 LINE 連結，請先複製訂單明細後私訊店家。</p>`}
     </div>
   </div></div></section>`;
 }
 async function copyOrder(){
   const t=document.getElementById('ordTx').textContent;
-  try { if(!navigator.clipboard) throw new Error('Clipboard unavailable'); await navigator.clipboard.writeText(t); toast('預覽明細已複製'); }
+  try { if(!navigator.clipboard) throw new Error('Clipboard unavailable'); await navigator.clipboard.writeText(t); toast('訂單明細已複製'); }
   catch(e){const range=document.createRange();range.selectNodeContents(document.getElementById('ordTx'));const selection=getSelection();selection.removeAllRanges();selection.addRange(range);toast('已選取明細，請手動複製');}
+}
+async function sendLineOrder(){
+  await copyOrder();
+  const line=safeUrl(DB.settings.lineUrl);
+  if(line)window.open(line,'_blank','noopener');
 }
 
 function vAbout(){
@@ -596,7 +604,7 @@ function vTerms(){
     <h4>付款</h4>
     <ul>
       <li>付款方式為超商貨到付款：顧客於指定超商取貨時付款。</li>
-      <li>目前網站為設計預覽，送出資料不會建立正式訂單。</li>
+      <li>送出後請將訂單明細傳到貳恭 LINE，收到回覆確認後訂單才會成立。</li>
     </ul>
     <h4>發票</h4>
     <ul><li>需要統編請於訂單備註填寫公司名稱與統編。</li></ul>
@@ -604,15 +612,15 @@ function vTerms(){
 }
 function vPrivacy(){
   return `<section class="blk"><div class="wrap doc">
-    <h2>隱私與預覽資料</h2><p style="color:var(--jerky);font-weight:700;margin-top:4px">目前設計預覽的資料使用方式</p><div class="diamond">◆ ◇ ◆</div>
+    <h2>隱私權政策</h2><p style="color:var(--jerky);font-weight:700;margin-top:4px">訂單資料的使用方式</p><div class="diamond">◆ ◇ ◆</div>
     <h4>商品、設定與購物車</h4>
-    <p>你在後台預覽修改的商品與設定，以及購物車和收藏，會保存在目前瀏覽器。這些修改不會同步到其他人的裝置，也不會成為正式商店資料。</p>
-    <h4>取貨流程的試填資料</h4>
-    <p>請使用測試資料。姓名、電話、Email、取貨門市與預覽明細只在本次開啟頁面期間保留，不會傳送給商家、寄送通知、安排物流或收取款項。重新整理頁面後，這些試填資料會清除。</p>
+    <p>商品設定、購物車和收藏會保存在目前瀏覽器，用於瀏覽與下單。</p>
+    <h4>取貨訂單資料</h4>
+    <p>姓名、電話、Email、取貨門市與訂單明細會先在你的裝置產生。請將明細傳到貳恭 LINE，作為訂單確認與聯絡使用；網站不會自動扣款。</p>
     <h4>外部連結與圖片</h4>
     <p>點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
-    <h4>清除本機預覽資料</h4>
-    <p>你可以在瀏覽器設定中清除此網站的網站資料，還原本機的商品設定、購物車與收藏。正式營運的個資告知內容需依實際服務另行設定。</p>
+    <h4>清除本機資料</h4>
+    <p>你可以在瀏覽器設定中清除此網站的網站資料，還原本機的商品設定、購物車與收藏。</p>
   </div></section>`;
 }
 
