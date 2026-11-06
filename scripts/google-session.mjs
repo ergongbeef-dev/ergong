@@ -22,7 +22,7 @@ export function requireSessionBuyer(request,env){
 }
 export async function googleAuth(request,env){
  const path=new URL(request.url).pathname;
- if(path==='/api/auth/config')return Response.json({enabled:ready(env),scopes:SCOPES.split(' '),buyer:sessionBuyer(request,env)},{headers:headers()});
+ if(path==='/api/auth/config')return Response.json({enabled:ready(env),scopes:SCOPES.split(' '),buyer:sessionBuyer(request,env),...(!ready(env)?{missingConfiguration:[!env.GOOGLE_CLIENT_ID&&'GOOGLE_CLIENT_ID',!env.GOOGLE_CLIENT_SECRET&&'GOOGLE_CLIENT_SECRET',!(env.AUTH_SESSION_SECRET?.length>=32)&&'AUTH_SESSION_SECRET'].filter(Boolean)}:{})},{headers:headers()});
  if(!ready(env))return Response.json({error:'Google 登入設定尚未完成。'},{status:503,headers:headers()});
  const callback=env.GOOGLE_REDIRECT_URI||CALLBACK;
  if(path==='/api/auth/logout'&&request.method==='POST'){
