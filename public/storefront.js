@@ -4,7 +4,7 @@ const SHOP_KEY = 'ergong:shopping:v3';
 let DB = null;
 let storageAvailable = true;
 let sourceSync=null;
-let googleBuyer=null,googleCredential=null,googleConfig=null,googleInitPromise=null;
+let googleBuyer=null,googleConfig=null;
 let adminToken = sessionStorage.getItem('ergong:admin') || '';
 
 function seed(){
@@ -478,7 +478,7 @@ function toggleShip(){
 let lastOrder=null;
 async function submitOrder(){
   if(!cart.length) return;
-  if(!googleBuyer||!googleCredential||googleBuyer.expiresAt<=Date.now()){googleBuyer=null;googleCredential=null;prepareGoogleLogin();toast('請先登入 Google 帳號。');return;}
+  if(!googleBuyer||googleBuyer.expiresAt<=Date.now()){googleBuyer=null;prepareGoogleLogin();toast('請先登入 Google 帳號。');return;}
   const g=id=>document.getElementById(id).value.trim();
   const ship='超商冷凍取貨';
   const instagram=g('f-ig').replace(/^@/,'');
@@ -496,7 +496,7 @@ async function submitOrder(){
   if(miss.length){ box.innerHTML=`<div class="err">還缺：${miss.join('、')}</div>`; box.scrollIntoView({block:'center'}); return; }
   const submit=document.getElementById('submit-order');if(submit.disabled)return;submit.disabled=true;submit.textContent='正在送出…';
   try{
-    const res=await api('/api/orders',{method:'POST',body:{customer:o,items:cart,credential:googleCredential}});
+    const res=await api('/api/orders',{method:'POST',body:{customer:o,items:cart}});
     lastOrder=res.order;
     DB.products=res.products||DB.products;
     cart=[]; saveShopping(); go('done'); checkoutDraft={};
@@ -602,7 +602,7 @@ function vPrivacy(){
     <h4>取貨訂單資料</h4>
     <p>正式下單時，姓名、電話、IG 帳號、取貨門市、訂單明細，以及經 Google 驗證的 Gmail 與帳號識別碼，會提交至貳恭的訂單資料庫，用於核對身分、訂單聯絡與履約。網站不會自動扣款。</p>
     <h4>外部連結與圖片</h4>
-    <p>Google 登入由 Google 提供；本網站僅保留 Google 帳號識別碼與 email，不儲存 Google 姓名或頭像，也不取得 Gmail 密碼、信件或聯絡人。收件人姓名由你在結帳時另外填寫，僅用於配送。登入憑證只暫存於頁面記憶體，不寫入購物車或 localStorage。點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
+    <p>Google 登入由 Google 提供；本網站僅保留 Google 帳號識別碼與 email，不儲存 Google 姓名或頭像，也不取得 Gmail 密碼、信件或聯絡人。收件人姓名由你在結帳時另外填寫，僅用於配送。登入以 HttpOnly、Secure Cookie 維持，Google 憑證不寫入購物車、localStorage 或日誌。點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
     <h4>清除本機資料</h4>
     <p>你可以在瀏覽器設定中清除此網站的網站資料，還原本機的商品設定、購物車與收藏。</p>
   </div></section>`;
@@ -938,19 +938,13 @@ document.addEventListener('keydown',event=>{if(event.key!=='Tab'||modalHost.open
 setInterval(()=>{if(!document.hidden&&view==='home')refreshCatalog();},300000);
 
 async function prepareGoogleLogin(){
- const status=document.getElementById('google-login-status'),button=document.getElementById('submit-order');if(!status||!button)return;
- if(googleBuyer&&googleBuyer.expiresAt>Date.now()){status.textContent='已驗證：'+googleBuyer.email;button.disabled=false;button.textContent='確認貨到付款訂單';return;}
- googleBuyer=null;googleCredential=null;button.disabled=true;button.textContent='請先登入 Google 再下單';
+ const status=document.getElementById('google-login-status'),button=document.getElementById('submit-order'),host=document.getElementById('google-signin-button');if(!status||!button||!host)return;
+ button.disabled=true;button.textContent='請先登入 Google 再下單';host.replaceChildren();
  try{
-  if(!googleConfig)googleConfig=await api('/api/auth/config');
-  if(!googleConfig.enabled){status.textContent='Google 登入尚未啟用，暫時無法下單。';return;}
-  if(!googleInitPromise)googleInitPromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client?hl=zh-TW';script.async=true;script.onload=resolve;script.onerror=()=>{googleInitPromise=null;reject(Error('登入服務載入失敗，請重新開啟結帳。'));};document.head.appendChild(script);});
-  await googleInitPromise;if(view!=='checkout')return;
-  google.accounts.id.initialize({client_id:googleConfig.clientId,nonce:googleConfig.nonce,auto_select:false,callback:async response=>{
-   try{const {buyer}=await api('/api/auth/google',{method:'POST',body:{credential:response.credential}});googleBuyer=buyer;googleCredential=response.credential;if(view==='checkout'){document.getElementById('google-signin-button').replaceChildren();prepareGoogleLogin();}}
-   catch(error){googleBuyer=null;googleCredential=null;document.getElementById('google-login-status').textContent=error.message;}
-  }});
-  status.textContent='請登入你的 Gmail 帳號後繼續。';
-  google.accounts.id.renderButton(document.getElementById('google-signin-button'),{type:'standard',theme:'outline',size:'large',text:'signin_with',locale:'zh-TW',width:250});
- }catch(error){status.textContent=error.message||'Google 登入暫時無法使用，請稍後重試。';}
+  googleConfig=await api('/api/auth/config');googleBuyer=googleConfig.buyer;
+  if(!googleConfig.enabled){status.textContent='Google 登入設定更新中，暫時無法登入下單。';return;}
+  if(googleBuyer&&googleBuyer.expiresAt>Date.now()){status.textContent='已驗證：'+googleBuyer.email;button.disabled=false;button.textContent='確認貨到付款訂單';const logout=document.createElement('button');logout.className='btn';logout.textContent='登出 Google 帳號';logout.onclick=async()=>{await api('/api/auth/logout',{method:'POST',body:{}});googleBuyer=null;prepareGoogleLogin();};host.append(logout);return;}
+  googleBuyer=null;status.textContent=new URLSearchParams(location.search).get('login')==='failed'?'Google 登入失敗，請重試。':'只要求 Google 帳號識別碼與 Email，不儲存 Google 姓名或頭像。';
+  const link=document.createElement('a');link.href='/api/auth/start';link.className='btn';link.textContent='使用 Google 帳戶登入';host.append(link);
+ }catch{status.textContent='Google 登入暫時無法使用，請稍後重試。';}
 }

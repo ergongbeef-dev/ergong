@@ -42,3 +42,23 @@ npm test
 ## Vercel
 
 匯入儲存庫後選 Next.js，專案根目錄使用本目錄，建置 npm run build。設定以上環境變數後再發布。尚未設定 Git 作者、Git 遠端、Vercel 帳號或正式環境，因此本次沒有 commit、push 或部署。
+
+## Google 最小權限登入（取代 GIS 按鈕）
+
+正式 Next.js 入口使用 scripts/google-session.mjs 的 OAuth 2.0 authorization code flow。
+授權要求固定為 `scope=openid email`、`include_granted_scopes=false`、`access_type=online`。
+不呼叫 userinfo API、不要求 profile、不儲存 access token、refresh token 或原始 ID token。
+Google 仍可能在選擇帳號畫面顯示姓名／頭像，或在 ID token 回傳額外 claims；本程式不映射、不持久化、不記錄這些額外欄位。
+身分唯一識別使用 Google sub，Email 僅為聯絡資料。
+Session Cookie 以 HMAC 簽章且有 HttpOnly、Secure、SameSite=Lax、__Host- 前綴及最多一小時有效期，只含 sub、email、到期時間。
+登入交易以 state、nonce、PKCE S256 保護；登出清除 session，下單驗證 session 與 Origin。
+
+部署前設定：
+1. Google Cloud → Google Auth Platform → 用戶端 → ERGONG Production → 已授權的重新導向 URI 加入 `https://ergong.vercel.app/api/auth/callback`。
+2. 資料存取權只列 openid、email（或 userinfo.email），移除 userinfo.profile 及不需要的 scopes；實際請求仍由程式固定。
+3. Vercel → ergong → Environment Variables → Production 新增 `GOOGLE_CLIENT_SECRET`（來自上述用戶端）及 `AUTH_SESSION_SECRET`（以 `openssl rand -hex 32` 產生）；保留原 GOOGLE_CLIENT_ID。
+4. `GOOGLE_REDIRECT_URI` 預設上述正式回呼網址；若另設環境必須與 Google 登錄的 HTTPS URL 相同。
+5. Redeploy。設定不完整時停用登入，避免回退至要求 profile 的舊方式。
+6. 使用一般外部瀏覽器登入，確認 /api/auth/config 的 buyer 僅含 googleSub、email、provider、expiresAt，登出後 buyer 為 null；不能在未實測前宣稱 Google 畫面不顯示姓名／頭像。
+
+測試 `npm test` 包含精確 scope、state、nonce、PKCE、簽章／過期 session、跨站下單拒絕、模擬完整回呼及排除姓名／頭像／token 持久化。

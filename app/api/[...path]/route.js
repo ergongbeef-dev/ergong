@@ -1,3 +1,4 @@
+import {googleAuth} from '../../../scripts/google-session.mjs';
 import commerce from '../../../lib/commerce';
 import {database,configuredDatabase} from '../../../lib/database';
 import {fetchMyship,MYSHIP_URL} from '../../../scripts/myship-source.mjs';
@@ -10,8 +11,8 @@ async function handle(request){
   if(path==='/api/store'&&request.method==='GET'){
    const source=await fetchMyship();return Response.json({settings:defaults,products:source.products,sync:{source:'myship',updatedAt:source.updatedAt,refreshSeconds:300}},{headers:{'cache-control':'no-store'}});
   }
-  const env={GOOGLE_CLIENT_ID:process.env.GOOGLE_CLIENT_ID};
-  if(path.startsWith('/api/auth/'))return commerce.fetch(request,env,{});
+  const env={GOOGLE_CLIENT_ID:process.env.GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET:process.env.GOOGLE_CLIENT_SECRET,AUTH_SESSION_SECRET:process.env.AUTH_SESSION_SECRET,GOOGLE_REDIRECT_URI:process.env.GOOGLE_REDIRECT_URI};
+  if(path.startsWith('/api/auth/'))return googleAuth(request,env);
   if(!configuredDatabase())return Response.json({error:'訂單資料庫尚未設定，暫時無法下單。'},{status:503});
   env.DB=await database();
   // Populate settings with current shipping values on a new database only.
