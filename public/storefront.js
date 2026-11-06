@@ -436,7 +436,7 @@ function vCheckout(){
     <div class="blk__hd"><h2>最後一步，把美味送到你身邊。</h2><p>7‑11 冷凍取貨・貨到付款</p></div>
     <div class="two">
       <div class="panel" style="padding:24px">
-        <div class="google-buyer"><span class="section-label">01 / 驗證下單帳號</span><h3>使用 Google 帳號登入</h3><p>訂單將綁定你驗證過的 Gmail，方便店家核對購買資訊。不會讀取你的信件。</p><div id="google-login-status" role="status">正在確認登入服務…</div><div id="google-signin-button"></div></div>
+        <div class="google-buyer"><span class="section-label">01 / 驗證下單帳號</span><h3>使用 Google 帳號登入</h3><p>登入後製作下單明細。本頁不將明細送到資料庫；請自行傳給店家確認。</p><div id="google-login-status" role="status">正在確認登入服務…</div><div id="google-signin-button"></div></div>
         <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="name" placeholder="例：王小明"><small>請務必使用真實姓名。</small></div>
         <div class="field"><label for="f-tel">手機號碼</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxx"><small>請務必使用真實電話，方便取貨與聯絡。</small></div>
         <div class="field"><label for="f-ig">Instagram 帳號</label><input id="f-ig" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="31" placeholder="例：@your_account" required><small>方便店家聯絡與確認訂單，請填寫可搜尋的帳號。</small></div>
@@ -458,8 +458,8 @@ function vCheckout(){
           <label class="checkline"><input id="f-agree" type="checkbox">我確認以上收件資訊正確，並同意於收到通知後，至指定 7‑11 門市付款並取貨。</label>
         </div>
         <div id="ckErr" role="alert" aria-live="polite"></div>
-        <button class="btn btn--primary btn--full" id="submit-order" ${googleBuyer&&googleBuyer.expiresAt>Date.now()?'':'disabled'} onclick="submitOrder()">${googleBuyer?'確認貨到付款訂單':'請先登入 Google 再下單'}</button>
-        <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">送出後由店家確認庫存及出貨；取貨時付款，本網站不會要求輸入信用卡。</p>
+        <button class="btn btn--primary btn--full" id="submit-order" ${googleBuyer&&googleBuyer.expiresAt>Date.now()?'':'disabled'} onclick="submitOrder()">${googleBuyer?'產生下單明細':'請先登入 Google 製作明細'}</button>
+        <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">目前採人工接單。產生明細不代表已下單，請下載保留並自行傳給店家；收到店家回覆才成立。</p>
       </div>
       <div class="panel sum">
         <h3 style="font-size:1.0625rem;margin-bottom:10px">訂單內容</h3>
@@ -494,20 +494,15 @@ async function submitOrder(){
   if(!o.agree) miss.push('取貨同意');
   const box=document.getElementById('ckErr');
   if(miss.length){ box.innerHTML=`<div class="err">還缺：${miss.join('、')}</div>`; box.scrollIntoView({block:'center'}); return; }
-  const submit=document.getElementById('submit-order');if(submit.disabled)return;submit.disabled=true;submit.textContent='正在送出…';
-  try{
-    const res=await api('/api/orders',{method:'POST',body:{customer:o,items:cart}});
-    lastOrder=res.order;
-    DB.products=res.products||DB.products;
-    cart=[]; saveShopping(); go('done'); checkoutDraft={};
-  }catch(e){
-    submit.disabled=false;submit.textContent='重新送出訂單';
-    box.innerHTML=`<div class="err">${esc(e.message||'訂單送出失敗，請稍後再試。')}</div>`;
-    box.scrollIntoView({block:'center'});
-  }
+  const items=cart.map(i=>{const p=DB.products.find(p=>p.id===i.id);return {...i,name:p.name};});
+  const subtotal=items.reduce((sum,i)=>sum+i.price*i.qty,0);
+  const fee=subtotal>=Number(DB.settings.freeOver)?0:Number(DB.settings.shipFee);
+  lastOrder={...o,mail:'',draft:true,no:'DRAFT-'+crypto.randomUUID(),at:new Date().toISOString(),items,fee,total:subtotal+fee,status:'尚未送交店家'};
+  go('done');
+
 }
 function orderText(o){
-  return ['貳恭 ER GONG 訂單明細','訂單編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,o.mail?'Google 登入帳號：'+o.mail:'',o.instagram?'IG：@'+o.instagram:(o.mail?'Email：'+o.mail:''),
+  return [o.draft?'貳恭 ER GONG 下單草稿（尚未成立）':'貳恭 ER GONG 訂單明細',o.draft?'請傳給店家確認；價格、運費與庫存以店家回覆為準。':'', '建立時間：'+new Date(o.at).toLocaleString('zh-TW'),(o.draft?'草稿參考碼：':'訂單編號：')+o.no,'姓名：'+o.name,'電話：'+o.tel,o.mail?'Google 登入帳號：'+o.mail:'',o.instagram?'IG：@'+o.instagram:(o.mail?'Email：'+o.mail:''),
     '配送：'+o.ship+'／'+o.addr,'付款：'+(o.pay||'超商貨到付款'),'—',
     ...o.items.map(i=>`${i.name}${i.spec?'・'+i.spec:''} ×${i.qty}　${NT(i.price*i.qty)}`),
     '運費：'+(o.fee?NT(o.fee):'免運'),'應付金額：'+NT(o.total),
@@ -517,7 +512,7 @@ function vDone(){
   const o=lastOrder; if(!o) return vHome();
   const line=safeUrl(DB.settings.lineUrl);
   return `<section class="blk"><div class="wrap"><div class="panel done">
-    <h2>${o.preview?'預覽訂單已產生':'訂單已送出，等待確認'}</h2>${o.preview?'<p class="note">這是預覽測試，沒有建立正式訂單，也沒有通知店家。</p>':''}
+    <h2>${o.draft?'下單明細已準備，尚未送交店家':o.preview?'預覽訂單已產生':'訂單已送出，等待確認'}</h2>${o.preview?'<p class="note">這是預覽測試，沒有建立正式訂單，也沒有通知店家。</p>':''}
     <div class="ordno">${o.no}</div>
     <p style="margin:0">應付金額 <b style="font-size:1.375rem">${NT(o.total)}</b></p>
     <p class="done-payment">付款方式：<b>${esc(o.pay||'超商貨到付款')}</b></p>
@@ -528,16 +523,23 @@ function vDone(){
       顧客到指定超商取貨時，於門市付款。
     </div>
     <div style="margin-top:22px;text-align:left">
-      <div class="lbl">訂單明細</div>
+      <p class="note">明細只暫存在目前頁面，重新整理或關閉後不會保留。下載檔案包含姓名、電話、IG 與門市，請自行妥善保管。開啟 LINE 不會自動傳送，請確認收件對象後自行貼上並送出。</p><div class="lbl">訂單明細</div>
       <div class="copybox" id="ordTx">${esc(orderText(o))}</div>
-      <div style="display:flex;gap:10px;margin-top:10px">
-        <button class="btn btn--primary btn--sm" onclick="sendLineOrder()">複製並開啟 LINE</button>
+      <div class="receipt-actions" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
+        <button class="btn btn--primary btn--sm" onclick="downloadOrder()">下載明細（TXT）</button><button class="btn btn--sm" onclick="window.print()">列印／存成 PDF</button><button class="btn btn--sm" onclick="sendLineOrder()">複製並開啟 LINE</button>
         <button class="btn btn--sm" onclick="copyOrder()">只複製明細</button>
         <button class="btn btn--sm" onclick="go('shop')">繼續逛</button>
       </div>
       ${line?`<p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">若 LINE 沒有自動貼上，請手動貼上剛剛複製的訂單明細。</p>`:`<p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">尚未設定 LINE 連結，請先複製訂單明細後私訊店家。</p>`}
     </div>
   </div></div></section>`;
+}
+function downloadOrder(){
+  if(!lastOrder)return;
+  const blob=new Blob(['\uFEFF'+orderText(lastOrder)],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='ERGONG-'+lastOrder.no+'.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('已開始下載明細，請確認下載檔案。');
 }
 async function copyOrder(){
   const t=document.getElementById('ordTx').textContent;
@@ -600,7 +602,7 @@ function vPrivacy(){
     <h4>商品、設定與購物車</h4>
     <p>商品設定、購物車和收藏會保存在目前瀏覽器，用於瀏覽與下單。</p>
     <h4>取貨訂單資料</h4>
-    <p>正式下單時，姓名、電話、IG 帳號、取貨門市、訂單明細，以及經 Google 驗證的 Gmail 與帳號識別碼，會提交至貳恭的訂單資料庫，用於核對身分、訂單聯絡與履約。網站不會自動扣款。</p>
+    <p>目前採人工接單。收件姓名、電話、IG、門市及購買明細只用於本頁產生草稿，不提交至訂單資料庫，也不自動寄信。下載檔案由你自行保管；傳送到 LINE 須由你確認對象並送出，資料將由 LINE 與店家處理。草稿不包含 Google 帳號識別碼與 Email。網站不會自動扣款。</p>
     <h4>外部連結與圖片</h4>
     <p>Google 登入由 Google 提供；本網站僅保留 Google 帳號識別碼與 email，不儲存 Google 姓名或頭像，也不取得 Gmail 密碼、信件或聯絡人。收件人姓名由你在結帳時另外填寫，僅用於配送。登入以 HttpOnly、Secure Cookie 維持，Google 憑證不寫入購物車、localStorage 或日誌。點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
     <h4>清除本機資料</h4>
@@ -939,11 +941,11 @@ setInterval(()=>{if(!document.hidden&&view==='home')refreshCatalog();},300000);
 
 async function prepareGoogleLogin(){
  const status=document.getElementById('google-login-status'),button=document.getElementById('submit-order'),host=document.getElementById('google-signin-button');if(!status||!button||!host)return;
- button.disabled=true;button.textContent='請先登入 Google 再下單';host.replaceChildren();
+ button.disabled=true;button.textContent='請先登入 Google 製作明細';host.replaceChildren();
  try{
   googleConfig=await api('/api/auth/config');googleBuyer=googleConfig.buyer;
   if(!googleConfig.enabled){status.textContent='Google 登入設定更新中，暫時無法登入下單。';return;}
-  if(googleBuyer&&googleBuyer.expiresAt>Date.now()){status.textContent='已驗證：'+googleBuyer.email;button.disabled=false;button.textContent='確認貨到付款訂單';const logout=document.createElement('button');logout.className='btn';logout.textContent='登出 Google 帳號';logout.onclick=async()=>{await api('/api/auth/logout',{method:'POST',body:{}});googleBuyer=null;prepareGoogleLogin();};host.append(logout);return;}
+  if(googleBuyer&&googleBuyer.expiresAt>Date.now()){status.textContent='已驗證：'+googleBuyer.email;button.disabled=false;button.textContent='產生下單明細';const logout=document.createElement('button');logout.className='btn';logout.textContent='登出 Google 帳號';logout.onclick=async()=>{await api('/api/auth/logout',{method:'POST',body:{}});googleBuyer=null;prepareGoogleLogin();};host.append(logout);return;}
   googleBuyer=null;status.textContent=new URLSearchParams(location.search).get('login')==='failed'?'Google 登入失敗，請重試。':'只要求 Google 帳號識別碼與 Email，不儲存 Google 姓名或頭像。';
   const link=document.createElement('a');link.href='/api/auth/start';link.className='btn';link.textContent='使用 Google 帳戶登入';host.append(link);
  }catch{status.textContent='Google 登入暫時無法使用，請稍後重試。';}

@@ -6,7 +6,7 @@ const go=(view)=>window.go?.(view);
 const jump=(id)=>window.jumpSection?.(id);
 export default function Storefront(){return <>
 <a className="skip-link" href="#app">跳至主要內容</a>
-<div className="preview-notice">線上接單開放 · 超商冷凍取貨・貨到付款</div>
+<div className="preview-notice">人工接單 · 產生明細後請傳 LINE 確認</div>
 <header className="bar"><div className="wrap bar__in">
 <button className="logo" onClick={()=>go('home')} aria-label="貳恭首頁"><span className="logo__mark">貳</span><span className="logo__tx"><b>貳恭 <span className="logo__product">濕式牛肉乾</span></b><span className="en">ER GONG</span></span></button>
 <nav className="main" id="nav" aria-label="主要導覽"><button data-v="home" onClick={()=>go('home')}>首頁</button><button data-v="shop" onClick={()=>go('shop')}>全部商品</button><button data-v="about" onClick={()=>jump('brand-story')}>關於貳恭</button><button data-v="terms" onClick={()=>jump('faq')}>購買須知</button></nav>
