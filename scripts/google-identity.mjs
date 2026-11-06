@@ -22,6 +22,6 @@ export async function verifyGoogleBuyer(request,env,token){
  const jwk=googleKeys.find(key=>key.kid===header.kid&&key.kty==='RSA'&&key.alg==='RS256');if(!jwk)throw Error();
  const key=await crypto.subtle.importKey('jwk',jwk,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
  if(!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,bytes(parts[2]),new TextEncoder().encode(parts[0]+'.'+parts[1])))throw Error();
- return {provider:'google',googleSub:claims.sub,email:claims.email,name:typeof claims.name==='string'?claims.name.slice(0,120):'',expiresAt:claims.exp*1000};
+ return {provider:'google',googleSub:claims.sub,email:claims.email,expiresAt:claims.exp*1000};
  }catch{throw new Response('Google 驗證失敗或已過期，請重新登入 Gmail。',{status:401});}
 }
