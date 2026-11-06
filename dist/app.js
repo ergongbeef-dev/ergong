@@ -3,6 +3,8 @@
 const SHOP_KEY = 'ergong:shopping:v3';
 let DB = null;
 let storageAvailable = true;
+let sourceSync=null;
+let googleBuyer=null,googleCredential=null,googleConfig=null,googleInitPromise=null;
 let adminToken = sessionStorage.getItem('ergong:admin') || '';
 
 function seed(){
@@ -23,7 +25,8 @@ function seed(){
     ],
     orders:[],
     settings:{
-      lineUrl:'https://line.me/R/ti/p/@ergong',
+      lineUrl:'https://line.me/R/ti/p/@634xhfoj',
+      myshipUrl:'https://myship.7-11.com.tw/general/detail/GM2505137999911',
       igUrl:'https://www.instagram.com/ergong_beef.ig/',
       payUrl:'',
       payHint:'進入付款頁後，請填入下方應付金額並在備註填訂單編號。',
@@ -43,12 +46,13 @@ const store = {
       if(!res.ok) throw new Error('Store unavailable');
       const data = await res.json();
       const base = seed();
+      sourceSync=data.sync||null;
       DB = {products:data.products||base.products, settings:{...base.settings,...(data.settings||{})}, orders:[]};
       storageAvailable = true;
     }catch(e){
       DB = seed();
       storageAvailable = false;
-      toast('目前讀不到線上資料庫，先顯示備用內容。');
+      DB.products=[];toast('商品暫時無法更新，請稍後重試或前往賣貨便。');
     }
   },
   async save(){
@@ -133,51 +137,11 @@ function artFor(p,big){
 }
 function imgOf(p,idx){
   const ph=safeUrl((p.photos||[])[idx||0]);
-  return ph?`<img src="${esc(ph)}" alt="${esc(p.name)}" width="300" height="300" loading="lazy" decoding="async">`:artFor(p);
+  return ph?`<img src="${esc(ph)}" alt="${esc(p.name)}" width="300" height="300" loading="lazy" decoding="async" onerror="this.onerror=null;this.replaceWith(document.createTextNode('商品圖片暫時無法載入'))">`:artFor(p);
 }
 
 /* ---------- IP 角色（首圖） ---------- */
-function mascot(){return `<svg class="hero__mascot" width="290" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="貳恭 IP 角色">
-  <g stroke="#16110E" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
-    <!-- legs -->
-    <path d="M112 300 v58" fill="none"/><path d="M188 300 v58" fill="none"/>
-    <path d="M96 300 h108 v40 h-108 z" fill="#2C5A86"/>
-    <path d="M96 340 h44 v22 h-44 z" fill="#2C5A86"/><path d="M160 340 h44 v22 h-44 z" fill="#2C5A86"/>
-    <path d="M88 362 h58 a6 6 0 0 1 6 6 v10 h-70 v-10 a6 6 0 0 1 6 -6 z" fill="#FFFBF2"/>
-    <path d="M154 362 h58 a6 6 0 0 1 6 6 v10 h-70 v-10 a6 6 0 0 1 6 -6 z" fill="#FFFBF2"/>
-    <path d="M82 378 h76 v10 h-76 z" fill="#24503A"/><path d="M148 378 h76 v10 h-76 z" fill="#24503A"/>
-    <!-- body -->
-    <path d="M104 176 h92 a16 16 0 0 1 16 16 v92 a16 16 0 0 1 -16 16 h-92 a16 16 0 0 1 -16 -16 v-92 a16 16 0 0 1 16 -16 z" fill="#F26A21"/>
-    <path d="M88 200 l-26 62 a10 10 0 0 0 8 14 l18 3 v-79 z" fill="#F26A21"/>
-    <path d="M212 200 l26 62 a10 10 0 0 1 -8 14 l-18 3 v-79 z" fill="#F26A21"/>
-    <path d="M104 176 q46 30 92 0" fill="none"/>
-    <path d="M150 206 v34" fill="none"/>
-    <path d="M126 244 h48 v26 h-48 z" fill="#C74F13"/>
-    <text x="150" y="263" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="17" fill="#FFFBF2" stroke="none">ERGONG</text>
-    <!-- horns -->
-    <path d="M104 66 q-30 -26 -44 -6 q16 6 22 26" fill="#5C2E14"/>
-    <path d="M196 66 q30 -26 44 -6 q-16 6 -22 26" fill="#5C2E14"/>
-    <!-- ears -->
-    <path d="M96 112 q-22 4 -20 24 q14 4 22 -8" fill="#C99A6B"/>
-    <path d="M204 112 q22 4 20 24 q-14 4 -22 -8" fill="#C99A6B"/>
-    <!-- head -->
-    <path d="M100 62 h100 a12 12 0 0 1 12 12 v82 a12 12 0 0 1 -12 12 h-100 a12 12 0 0 1 -12 -12 v-82 a12 12 0 0 1 12 -12 z" fill="#D2A574"/>
-    <g stroke-width="3" opacity=".5">
-      <path d="M112 74 v86" fill="none"/><path d="M132 74 v86" fill="none"/><path d="M152 74 v86" fill="none"/>
-      <path d="M172 74 v86" fill="none"/><path d="M192 74 v86" fill="none"/>
-    </g>
-    <!-- eyes -->
-    <ellipse cx="128" cy="112" rx="19" ry="21" fill="#FFFBF2"/>
-    <ellipse cx="176" cy="112" rx="19" ry="21" fill="#FFFBF2"/>
-    <circle cx="132" cy="114" r="8" fill="#16110E" stroke="none"/>
-    <circle cx="172" cy="114" r="8" fill="#16110E" stroke="none"/>
-    <!-- brows -->
-    <path d="M108 86 q20 -10 38 -2" fill="none" stroke-width="9"/>
-    <path d="M154 84 q20 -8 38 4" fill="none" stroke-width="9"/>
-    <!-- mouth -->
-    <path d="M132 146 q18 12 36 0" fill="none" stroke-width="6"/>
-  </g>
-</svg>`}
+function mascot(){return `<img class="hero__mascot" src="assets/ergong-ip-chibi-v1.png" alt="貳恭 Q 版品牌 IP：金黃色紋理頭部、棕色牛角，穿著深綠上衣並比讚" width="1145" height="1374" decoding="async" fetchpriority="high">`}
 
 /* =========================================================
    前台畫面
@@ -194,7 +158,7 @@ function rememberPosition(){
 }
 function rememberCheckout(){
   if(view!=='checkout')return;
-  ['f-name','f-tel','f-mail','f-store','f-note'].forEach(id=>{const el=document.getElementById(id);if(el)checkoutDraft[id]=el.value;});
+  ['f-name','f-tel','f-ig','f-store'].forEach(id=>{const el=document.getElementById(id);if(el)checkoutDraft[id]=el.value;});
   const agree=document.getElementById('f-agree');if(agree)checkoutDraft['f-agree']=agree.checked;
 }
 function restoreCheckout(){
@@ -206,7 +170,14 @@ function closeMenu(){
   document.getElementById('nav').classList.remove('open');
   const button=document.querySelector('.menubtn');button.setAttribute('aria-expanded','false');button.setAttribute('aria-label','開啟選單');
 }
+function jumpSection(id){
+  if(view!=='home'){view='home';history.replaceState(routeSnapshot(),'',routeURL());render({preserveScroll:false});}
+  closeMenu();document.getElementById(id)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+}
 function go(v,id){
+  if(v==='shop'){jumpSection('products');return;}
+  if(v==='about'){jumpSection('brand-story');return;}
+
   rememberCheckout();rememberPosition();
   const previous=view;
   const same=view===v&&(v!=='product'||cur===id);
@@ -215,7 +186,7 @@ function go(v,id){
   closeMenu();
   if(!same){routeSerial=Date.now()+Math.random();history.pushState({...routeSnapshot(),returnToCatalog:v==='product'&&['home','shop'].includes(previous)},'',routeURL());}
   render({preserveScroll:false}); window.scrollTo({top:0,behavior:'instant'});
-  document.getElementById('app').focus({preventScroll:true});
+  (document.querySelector('.flow-sheet')||document.getElementById('app')).focus({preventScroll:true});
 }
 function returnToCatalog(){if(history.state?.returnToCatalog)history.back();else go('shop');}
 function updateCartBadge(){
@@ -237,11 +208,16 @@ function render({preserveScroll=true}={}){
   document.querySelectorAll('nav.main button').forEach(b=>b.setAttribute('aria-current', b.dataset.v===view?'true':'false'));
   updateCartBadge();
   const V={home:vHome,shop:vShop,product:vProduct,cart:vCart,checkout:vCheckout,done:vDone,about:vAbout,terms:vTerms,privacy:vPrivacy,admin:vAdmin};
-  document.getElementById('app').innerHTML=(V[view]||vHome)();
+  const sheet=!['home','admin'].includes(view);
+  document.getElementById('app').innerHTML=sheet?`<div inert>${vHome()}</div>`+`<div class="flow-backdrop" onclick="go('home')"></div><section class="flow-sheet" tabindex="-1" role="dialog" aria-modal="true" aria-label="${view==='product'?'商品詳情':view==='cart'?'購物車':'訂購資訊'}"><div class="flow-top"><span class="en">ER GONG / YOUR ORDER</span><button class="iconbtn" onclick="go('home')" aria-label="關閉訂購視窗">✕</button></div>${(V[view]||vHome)()}</section>`:(V[view]||vHome)();
+  document.body.classList.toggle('flow-open',sheet);
+  if(sheet)document.querySelector('.flow-sheet').focus({preventScroll:true});
   restoreCheckout();
   const filters=document.querySelector('.filters');if(filters)filters.scrollLeft=filterScroll;
   if(view==='admin') paintAdmin();
+  if(view==='checkout')prepareGoogleLogin();
   if(view==='home') startMarquee();
+  document.querySelectorAll('.flow-sheet').forEach(el=>el.tabIndex=-1);
   if(preserveScroll)window.scrollTo({top:scrollY,behavior:'instant'});
 }
 
@@ -256,7 +232,7 @@ function cardHtml(p){
       <div class="card__nm">${esc(p.name)}</div>
       <div class="card__ds">${esc(p.desc)}</div>
       <div class="card__pr">${NT(p.price)}${p.orig?`<s>${NT(p.orig)}</s>`:''}</div>
-      <button class="btn btn--sm card__go" onclick="go('product',${arg(p.id)})">看詳細</button>
+      <button class="btn btn--sm card__go" onclick="go('product',${arg(p.id)})" aria-label="查看${esc(p.name)}詳細資訊">選購 →</button>
     </div>
   </article>
   <span style="display:none">${fav}</span>`.replace('<span style="display:none">'+fav+'</span>','');
@@ -274,53 +250,23 @@ function toggleFav(e,id){
 }
 
 function vHome(){
-  const s=DB.settings, L=live();
-  const news=[...new Map(L.filter(p=>p.isNew).concat(L).map(p=>[p.id,p])).values()].slice(0,4);
-  const hot=L.filter(p=>p.hot).slice(0,4);
-  return `
-  <div class="hero">
-    <div class="hero__in">
-      <div class="bubble">
-        <h1><em class="en">ER GONG</em>咬得到肉的<br>濕式牛肉乾</h1>
-        <p><strong>市面罕見｜全新體驗濕式牛肉乾登場</strong>🔥</p>
-        <div class="hero__cta">
-          <button class="btn btn--primary" onclick="go('shop')">看全部口味</button>
-          <a class="btn btn--line" href="${esc(safeUrl(s.lineUrl))}" target="_blank" rel="noopener">加 LINE 好友</a>
-        </div>
-      </div>
-      ${mascot()}
-    </div>
+ const s=DB.settings;
+ return `<div class="hero" id="top"><div class="hero__in">
+  <div class="bubble"><span class="eyebrow en">GOOD MEAT. GOOD MOOD.</span><h1><em>貳恭 ER GONG</em>今晚的快樂，<br>來點<span>有肉的。</span></h1><p>咬得到肉的濕式牛肉乾。<br>一包配劇、一包配酒，好好享受每一口。</p><div class="hero__cta"><button class="btn btn--primary" onclick="jumpSection('products')">挑選我的口味 ↘</button><button class="btn" onclick="jumpSection('how-to-order')">怎麼買？</button></div><div class="hero-caption">濕潤肉感 / 濃郁醬香 / 真空包裝</div></div>
+  <div class="hero-art hero-art--reviews" aria-label="貳恭品牌風味介紹">
+    <div class="review-heading"><span class="en">BIG FLAVOR.<br>GOOD MOOD.</span></div>
+    <article class="hero-review hero-review--one"><span class="flavor-kicker">原味派 / ORIGINAL</span><h3>有肉感，<br>才過癮。</h3><p>濕潤肉感 × 濃郁醬香<br>給追劇時光，一點好滋味。</p></article>
+    <article class="hero-review hero-review--two"><span class="flavor-kicker">辣味控 / SPICY</span><h3>來點辣，<br>更對味。</h3><p>一包配飲料，一包和朋友分享。</p></article>
+    ${mascot()}<span class="review-spark" aria-hidden="true">✦</span>
   </div>
-  <div class="marquee"><div class="marquee__t" id="mq">${esc((s.marquee||[])[0]||'')}</div></div>
-
-  <section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>最新上架</h2><p>剛滷好的</p><button class="btn btn--sm" onclick="go('shop')">看全部</button></div>
-    ${gridOf(news.filter((v,i,a)=>a.indexOf(v)===i).slice(0,4))}
-  </div></section>
-
-  ${hot.length?`<section class="blk" style="border-top:var(--bd);border-bottom:var(--bd);background:rgba(255,255,255,.45)"><div class="wrap">
-    <div class="blk__hd"><h2>大家都在買</h2><p>回購率最高的幾款</p><button class="btn btn--sm" onclick="go('shop')">看全部</button></div>
-    ${gridOf(hot)}
-  </div></section>`:''}
-
-  <section class="blk"><div class="wrap">
-    <div class="two">
-      <div class="panel" style="padding:26px 28px">
-        <h2 style="font-size:1.6875rem">關於貳恭</h2>
-        <div class="diamond">◆ ◇ ◆</div>
-        <div class="readable-copy">${esc(s.about)}</div>
-      </div>
-      <div class="panel purchase-card" style="padding:22px">
-        <h3 style="font-size:1.1875rem;margin-bottom:12px">買之前先知道</h3>
-        <ul class="readable-list" style="padding-left:18px;margin:0">
-          <li>接單後製作，出貨約 3–5 個工作日。</li>
-          <li>超商冷凍取貨，滿 ${NT(s.freeOver)} 免運，未滿收 ${NT(s.shipFee)}。</li>
-          <li>收到商品如有異常，請保留照片並聯繫我們。</li>
-        </ul>
-        <button class="btn btn--sm" style="margin-top:16px" onclick="go('terms')">完整購買須知</button>
-      </div>
-    </div>
-  </div></section>`;
+ </div></div>
+ <div class="benefit-strip"><span>7‑11 冷凍取貨</span><span>貨到付款</span><span>滿 ${NT(s.freeOver)} 免運</span></div>
+ <section class="blk shop-section" id="products"><div class="wrap"><div class="section-label en">01 / PICK YOUR FAVORITE</div><div class="sync-note">${sourceSync?`商品來源：7‑11 賣貨便 · 更新於 ${new Date(sourceSync.updatedAt).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}`:'商品資訊載入中'}<button onclick="refreshCatalog()" aria-label="重新整理商品">↻ 更新商品</button></div>${vShop().replace('<section class="blk"><div class="wrap">','<div class="shop-inner">').replace('</div></section>','</div>')}</div></section>
+ <section class="brand-section" id="brand-story"><div class="wrap brand-layout"><div><span class="section-label en">02 / THE ER GONG WAY</span><h2>肉乾，也可以<br><span>很有肉感。</span></h2></div><div><p class="brand-lead">把日常的小餓，<br>變成值得期待的一口。</p><p>貳恭的濕式牛肉乾，帶著濃郁醬香與濕潤口感。無論是追劇、聚會，還是下班後的小酌時光，拆一包，就很對味。</p><div class="brand-tags"><span>真空包裝</span><span>濕式口感</span><span>冷凍配送</span></div></div></div></section>
+ <section class="blk order-guide" id="how-to-order"><div class="wrap"><span class="section-label en">03 / JUST THREE STEPS</span><div class="blk__hd"><h2>想吃，就這麼簡單。</h2></div><div class="steps-grid"><article><b class="en">01</b><h3>挑口味、加購物車</h3><p>選好喜歡的商品與數量，隨時查看訂單金額。</p></article><article><b class="en">02</b><h3>填寫取貨資訊</h3><p>留下姓名、手機、IG 帳號與 7‑11 取貨門市。</p></article><article><b class="en">03</b><h3>到店取貨，再付款</h3><p>確認貨到付款取貨同意，送出訂單，等待店家確認。</p></article></div>
+ <div class="myship-panel"><div><span class="en">SHOP YOUR WAY</span><h3>習慣用賣貨便？也可以。</h3><p>喜歡直接在這裡買，就加入購物車；也能透過店家的賣貨便賣場訂購。</p></div>${safeUrl(s.myshipUrl)?`<a class="btn" href="${esc(safeUrl(s.myshipUrl))}" target="_blank" rel="noopener">前往 7‑11 賣貨便 ↗</a>`:`<a class="btn" href="${esc(safeUrl(s.lineUrl))}" target="_blank" rel="noopener">詢問賣貨便連結 ↗</a>`}</div></div></section>
+ <section class="blk faq-section" id="faq"><div class="wrap faq-layout"><div><span class="section-label en">04 / BEFORE YOU ORDER</span><h2>買之前，<br>先聊一下。</h2></div><div class="faq-list"><details open><summary>怎麼取貨、怎麼付款？</summary><p>目前使用 7‑11 冷凍取貨、貨到付款。請填寫收件人真實姓名、手機與取貨門市，收到通知後到店付款取貨。</p></details><details><summary>運費怎麼計算？</summary><p>商品金額滿 ${NT(s.freeOver)} 免運，未滿運費 ${NT(s.shipFee)}。購物車會自動計算。</p></details><details><summary>下單後多久出貨？</summary><p>接單後製作，出貨約 3–5 個工作日，實際時間以店家確認為準。</p></details><details><summary>商品有問題，怎麼聯絡？</summary><p>請保留包裝與商品照片，透過 LINE 或 Instagram 聯絡我們。</p></details></div></div></section>
+ <section class="closing-banner"><div class="wrap"><span class="en">ONE MORE BITE?</span><h2>把好吃的，帶回日常。</h2><button class="btn btn--primary" onclick="jumpSection('products')">開始挑選 →</button></div></section>`;
 }
 let mqT=null;
 function startMarquee(){
@@ -330,6 +276,7 @@ function startMarquee(){
   let i=0; clearInterval(mqT);
   mqT=setInterval(()=>{i=(i+1)%list.length;el.textContent=list[i];},4800);
 }
+async function refreshCatalog(){if(view!=='home')return;const old=DB;await store.load();if(!storageAvailable){DB=old;toast('無法更新商品，保留上次內容。');return;}render();toast('商品資訊已更新');}
 function selectFilter(value){filter=value;render();document.querySelectorAll('[data-filter]').forEach(button=>{if(button.dataset.filter===value)button.focus({preventScroll:true});});}
 
 function vShop(){
@@ -342,7 +289,7 @@ function vShop(){
   return `<section class="blk"><div class="wrap">
     <div class="blk__hd"><h2>全部商品</h2><p>${list.length} 款${kw?`・關鍵字「${esc(kw)}」`:''}</p></div>
     <div class="filters">
-      ${chip('全部','全部')}${(s.cats||[]).map(c=>chip(c,c)).join('')}${chip('收藏','♥ 我的收藏')}
+      ${chip('全部','全部')}${[...new Set(live().map(p=>p.cat))].map(c=>chip(c,c)).join('')}${chip('收藏','♥ 我的收藏')}
       ${kw?`<button class="chip" onclick="kw='';render()">清除關鍵字 ✕</button>`:''}
     </div>
     ${gridOf(list)}
@@ -373,13 +320,14 @@ function vProduct(){
         <div class="lbl">數量</div>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <div class="qty"><button id="product-minus" onclick="setProductQuantity(-1)" aria-label="減少數量" ${curQty<=1?'disabled':''}>−</button><span id="product-quantity" aria-live="polite">${curQty}</span><button id="product-plus" onclick="setProductQuantity(1)" aria-label="增加數量" ${curQty>=available?'disabled':''}>＋</button></div>
-          <span id="product-available" class="stock-note">${available>0?`可再加入 ${available} 份`:p.stock>0?'已達可加入數量':'目前售完'}</span>
+          <span id="product-available" class="stock-note">${available>0?`${p.stock===null?'庫存由店家確認':`可再加入 ${available} 份`}`:p.stock>0?'已達可加入數量':'目前售完'}</span>
         </div>
         <div class="product-actions" style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
           <button id="product-add" class="btn btn--primary" ${out?'disabled':''} onclick="addCart(${arg(p.id)})">${out&&p.stock>0?'已達可加入數量':'加入購物車'}</button>
+          <button class="btn" onclick="go('cart')">查看購物車 →</button>
           <button class="btn" data-favorite-id="${esc(p.id)}" aria-pressed="${favs.includes(p.id)}" aria-label="${favs.includes(p.id)?'取消收藏':'收藏'}${esc(p.name)}" onclick="toggleFav(event,${arg(p.id)})">♥ 收藏</button>
         </div>
-        <div class="pd__meta">${esc(p.detail)}</div>
+        <details class="pd__meta"><summary>商品說明、成分與保存方式</summary><div>${esc(p.detail)}</div></details>
       </div>
     </div>
   </div></section>`;
@@ -393,7 +341,7 @@ function updateProductControls(){
   document.getElementById('product-quantity').textContent=curQty;
   document.getElementById('product-minus').disabled=curQty<=1;
   document.getElementById('product-plus').disabled=curQty>=available;
-  document.getElementById('product-available').textContent=available>0?`可再加入 ${available} 份`:p.stock>0?'已達可加入數量':'目前售完';
+  document.getElementById('product-available').textContent=available>0?`${p.stock===null?'庫存由店家確認':`可再加入 ${available} 份`}`:p.stock>0?'已達可加入數量':'目前售完';
   const add=document.getElementById('product-add');add.disabled=available<=0;add.textContent=available>0?'加入購物車':p.stock>0?'已達可加入數量':'目前售完';
 }
 function setProductQuantity(delta){curQty+=delta;updateProductControls();}
@@ -485,12 +433,13 @@ function vCheckout(){
   if(!cart.length) return vCart();
   const st=subTotal(), sh=shipOf(st);
   return `<section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>超商取貨與貨到付款</h2><p>送出後請把訂單明細傳到 LINE，收到回覆確認後才算成立。</p></div>
+    <div class="blk__hd"><h2>最後一步，把美味送到你身邊。</h2><p>7‑11 冷凍取貨・貨到付款</p></div>
     <div class="two">
       <div class="panel" style="padding:24px">
+        <div class="google-buyer"><span class="section-label">01 / 驗證下單帳號</span><h3>使用 Google 帳號登入</h3><p>訂單將綁定你驗證過的 Gmail，方便店家核對購買資訊。不會讀取你的信件。</p><div id="google-login-status" role="status">正在確認登入服務…</div><div id="google-signin-button"></div></div>
         <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="name" placeholder="例：王小明"><small>請務必使用真實姓名。</small></div>
         <div class="field"><label for="f-tel">手機號碼</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxx"><small>請務必使用真實電話，方便取貨與聯絡。</small></div>
-        <div class="field"><label for="f-mail">Email（可留空）</label><input id="f-mail" type="email" autocomplete="email" placeholder="you@gmail.com"><small>可填 Gmail；目前不會自動寄信，主要用於訂單聯絡。</small></div>
+        <div class="field"><label for="f-ig">Instagram 帳號</label><input id="f-ig" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="31" placeholder="例：@your_account" required><small>方便店家聯絡與確認訂單，請填寫可搜尋的帳號。</small></div>
         <div class="field"><span class="field-label">配送方式</span>
           <div class="payment-choice" aria-label="配送方式：超商冷凍取貨">
             <span class="payment-check" aria-hidden="true">✓</span>
@@ -504,13 +453,13 @@ function vCheckout(){
             <span><b>超商貨到付款</b><small id="payment-note">到指定超商取貨時，於門市付款。</small></span>
           </div>
         </div>
-        <div class="field"><label for="f-note">訂單備註</label><textarea id="f-note" placeholder="口味指定、指定到貨日等"></textarea></div>
+
         <div class="field">
-          <label class="checkline"><input id="f-agree" type="checkbox">我同意下單後請務必取貨，若無故未取可能影響後續訂購。</label>
+          <label class="checkline"><input id="f-agree" type="checkbox">我確認以上收件資訊正確，並同意於收到通知後，至指定 7‑11 門市付款並取貨。</label>
         </div>
-        <div id="ckErr"></div>
-        <button class="btn btn--primary btn--full" onclick="submitOrder()">產生訂單明細</button>
-        <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">資料會先在你的裝置產生，請務必傳到 LINE 讓我們確認；不會在線上扣款。</p>
+        <div id="ckErr" role="alert" aria-live="polite"></div>
+        <button class="btn btn--primary btn--full" id="submit-order" ${googleBuyer&&googleBuyer.expiresAt>Date.now()?'':'disabled'} onclick="submitOrder()">${googleBuyer?'確認貨到付款訂單':'請先登入 Google 再下單'}</button>
+        <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">送出後由店家確認庫存及出貨；取貨時付款，本網站不會要求輸入信用卡。</p>
       </div>
       <div class="panel sum">
         <h3 style="font-size:1.0625rem;margin-bottom:10px">訂單內容</h3>
@@ -529,33 +478,36 @@ function toggleShip(){
 let lastOrder=null;
 async function submitOrder(){
   if(!cart.length) return;
+  if(!googleBuyer||!googleCredential||googleBuyer.expiresAt<=Date.now()){googleBuyer=null;googleCredential=null;prepareGoogleLogin();toast('請先登入 Google 帳號。');return;}
   const g=id=>document.getElementById(id).value.trim();
   const ship='超商冷凍取貨';
-  const cleanMail=g('f-mail').replace(/\uFF20/g,'@').replace(/\s+/g,'');
+  const instagram=g('f-ig').replace(/^@/,'');
   const agree=document.getElementById('f-agree')?.checked;
-  const emailOk=!cleanMail||/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(cleanMail);
-  const o={name:g('f-name'),tel:g('f-tel'),mail:cleanMail,ship,pay:'超商貨到付款',
-    addr:g('f-store'),note:g('f-note'),agree};
+  const igOk=/^[A-Za-z0-9._]{1,30}$/.test(instagram);
+  const o={name:g('f-name'),tel:g('f-tel'),mail:googleBuyer.email,instagram,ship,pay:'超商貨到付款',
+    addr:g('f-store'),note:'',agree};
   const miss=[];
   if(!o.name) miss.push('收件人姓名');
   if(!/^09\d{8}$/.test(o.tel)) miss.push('正確的手機號碼');
-  if(!emailOk) miss.push('正確的 Email');
+  if(!igOk) miss.push('正確的 IG 帳號');
   if(!o.addr) miss.push('取貨門市');
   if(!o.agree) miss.push('取貨同意');
   const box=document.getElementById('ckErr');
   if(miss.length){ box.innerHTML=`<div class="err">還缺：${miss.join('、')}</div>`; box.scrollIntoView({block:'center'}); return; }
+  const submit=document.getElementById('submit-order');if(submit.disabled)return;submit.disabled=true;submit.textContent='正在送出…';
   try{
-    const res=await api('/api/orders',{method:'POST',body:{customer:o,items:cart}});
+    const res=await api('/api/orders',{method:'POST',body:{customer:o,items:cart,credential:googleCredential}});
     lastOrder=res.order;
     DB.products=res.products||DB.products;
     cart=[]; saveShopping(); go('done'); checkoutDraft={};
   }catch(e){
+    submit.disabled=false;submit.textContent='重新送出訂單';
     box.innerHTML=`<div class="err">${esc(e.message||'訂單送出失敗，請稍後再試。')}</div>`;
     box.scrollIntoView({block:'center'});
   }
 }
 function orderText(o){
-  return ['貳恭 ER GONG 訂單明細','訂單編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,o.mail?'Email：'+o.mail:'',
+  return ['貳恭 ER GONG 訂單明細','訂單編號：'+o.no,'姓名：'+o.name,'電話：'+o.tel,o.mail?'Google 登入帳號：'+o.mail:'',o.instagram?'IG：@'+o.instagram:(o.mail?'Email：'+o.mail:''),
     '配送：'+o.ship+'／'+o.addr,'付款：'+(o.pay||'超商貨到付款'),'—',
     ...o.items.map(i=>`${i.name}${i.spec?'・'+i.spec:''} ×${i.qty}　${NT(i.price*i.qty)}`),
     '運費：'+(o.fee?NT(o.fee):'免運'),'應付金額：'+NT(o.total),
@@ -565,7 +517,7 @@ function vDone(){
   const o=lastOrder; if(!o) return vHome();
   const line=safeUrl(DB.settings.lineUrl);
   return `<section class="blk"><div class="wrap"><div class="panel done">
-    <h2>訂單明細已產生</h2>
+    <h2>${o.preview?'預覽訂單已產生':'訂單已送出，等待確認'}</h2>${o.preview?'<p class="note">這是預覽測試，沒有建立正式訂單，也沒有通知店家。</p>':''}
     <div class="ordno">${o.no}</div>
     <p style="margin:0">應付金額 <b style="font-size:1.375rem">${NT(o.total)}</b></p>
     <p class="done-payment">付款方式：<b>${esc(o.pay||'超商貨到付款')}</b></p>
@@ -648,9 +600,9 @@ function vPrivacy(){
     <h4>商品、設定與購物車</h4>
     <p>商品設定、購物車和收藏會保存在目前瀏覽器，用於瀏覽與下單。</p>
     <h4>取貨訂單資料</h4>
-    <p>姓名、電話、Email、取貨門市與訂單明細會先在你的裝置產生。請將明細傳到貳恭 LINE，作為訂單確認與聯絡使用；網站不會自動扣款。</p>
+    <p>正式下單時，姓名、電話、IG 帳號、取貨門市、訂單明細，以及經 Google 驗證的 Gmail 與帳號識別碼，會提交至貳恭的訂單資料庫，用於核對身分、訂單聯絡與履約。網站不會自動扣款。</p>
     <h4>外部連結與圖片</h4>
-    <p>點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
+    <p>Google 登入由 Google 提供；本網站只使用登入身分與 email，不取得 Gmail 密碼、信件或聯絡人。登入憑證只暫存於頁面記憶體，不寫入購物車或 localStorage。點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
     <h4>清除本機資料</h4>
     <p>你可以在瀏覽器設定中清除此網站的網站資料，還原本機的商品設定、購物車與收藏。</p>
   </div></section>`;
@@ -946,7 +898,7 @@ function toast(msg){
   const d=document.createElement('div'); d.className='toast'; d.textContent=msg;d.setAttribute('role','status');d.setAttribute('aria-live','polite');
   document.body.appendChild(d); tT=setTimeout(()=>d.remove(),2100);
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(modalHost.open)closeModal();else closeMenu();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(modalHost.open)closeModal();else if(document.body.classList.contains('flow-open'))go('home');else closeMenu();}});
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('header.bar'))closeMenu();},{passive:true});
 document.addEventListener('visibilitychange',()=>{clearInterval(mqT);mqT=null;if(!document.hidden&&view==='home')startMarquee();});
 let scrollFrame=0;
@@ -981,3 +933,24 @@ function readRoute(){
   routeSerial=Date.now()+Math.random();history.replaceState(routeSnapshot(),'',routeURL());
   render({preserveScroll:false});
 })();
+
+document.addEventListener('keydown',event=>{if(event.key!=='Tab'||modalHost.open)return;const sheet=document.querySelector('.flow-sheet');if(!sheet)return;const items=[...sheet.querySelectorAll('button:not([disabled]),a[href],input,select,textarea,[tabindex="0"]')].filter(el=>el.getClientRects().length);if(!items.length)return;const first=items[0],last=items[items.length-1];if(event.shiftKey&&(document.activeElement===first||!sheet.contains(document.activeElement))){event.preventDefault();last.focus();}else if(!event.shiftKey&&(document.activeElement===last||!sheet.contains(document.activeElement))){event.preventDefault();first.focus();}});
+setInterval(()=>{if(!document.hidden&&view==='home')refreshCatalog();},300000);
+
+async function prepareGoogleLogin(){
+ const status=document.getElementById('google-login-status'),button=document.getElementById('submit-order');if(!status||!button)return;
+ if(googleBuyer&&googleBuyer.expiresAt>Date.now()){status.textContent='已驗證：'+googleBuyer.email;button.disabled=false;button.textContent='確認貨到付款訂單';return;}
+ googleBuyer=null;googleCredential=null;button.disabled=true;button.textContent='請先登入 Google 再下單';
+ try{
+  if(!googleConfig)googleConfig=await api('/api/auth/config');
+  if(!googleConfig.enabled){status.textContent='Google 登入尚未啟用，暫時無法下單。';return;}
+  if(!googleInitPromise)googleInitPromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client?hl=zh-TW';script.async=true;script.onload=resolve;script.onerror=()=>{googleInitPromise=null;reject(Error('登入服務載入失敗，請重新開啟結帳。'));};document.head.appendChild(script);});
+  await googleInitPromise;if(view!=='checkout')return;
+  google.accounts.id.initialize({client_id:googleConfig.clientId,nonce:googleConfig.nonce,auto_select:false,callback:async response=>{
+   try{const {buyer}=await api('/api/auth/google',{method:'POST',body:{credential:response.credential}});googleBuyer=buyer;googleCredential=response.credential;if(view==='checkout'){document.getElementById('google-signin-button').replaceChildren();prepareGoogleLogin();}}
+   catch(error){googleBuyer=null;googleCredential=null;document.getElementById('google-login-status').textContent=error.message;}
+  }});
+  status.textContent='請登入你的 Gmail 帳號後繼續。';
+  google.accounts.id.renderButton(document.getElementById('google-signin-button'),{type:'standard',theme:'outline',size:'large',text:'signin_with',locale:'zh-TW',width:250});
+ }catch(error){status.textContent=error.message||'Google 登入暫時無法使用，請稍後重試。';}
+}

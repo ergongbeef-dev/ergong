@@ -15,9 +15,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
+<a class="skip-link" href="#app">跳至主要內容</a>
 
 <div class="preview-notice">線上接單開放 · 超商冷凍取貨・貨到付款</div>
 <header class="bar">
@@ -29,8 +30,8 @@
     <nav class="main" id="nav" aria-label="主要導覽">
       <button data-v="home" onclick="go('home')">首頁</button>
       <button data-v="shop" onclick="go('shop')">全部商品</button>
-      <button data-v="about" onclick="go('about')">關於貳恭</button>
-      <button data-v="terms" onclick="go('terms')">購買須知</button>
+      <button data-v="about" onclick="jumpSection('brand-story')">關於貳恭</button>
+      <button data-v="terms" onclick="jumpSection('faq')">購買須知</button>
     </nav>
     <div class="bar__act">
       <button class="iconbtn menubtn" onclick="toggleMenu()" aria-label="開啟選單" aria-controls="nav" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
@@ -52,8 +53,7 @@
       <a id="ftLine" href="#" target="_blank" rel="noopener">LINE 官方帳號</a>
     </div>
     <div class="ft__cp">
-      貳恭 ER GONG ・ 濕式牛肉乾<br>
-      <button onclick="adminGate()">正式後台</button>
+      貳恭 ER GONG ・ 濕式牛肉乾
     </div>
   </div>
 </footer>
@@ -64,6 +64,6 @@
 
 <dialog id="modalHost" aria-label="操作視窗"></dialog>
 
-<script src="app.js" defer></script>
+<script src="app.js?v=14" defer></script>
 </body>
 </html>

@@ -11,6 +11,7 @@ const contentTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
 };
 
 const textAssets = {
@@ -21,6 +22,9 @@ const textAssets = {
 };
 
 const binaryAssets = {
+  "/assets/ergong-jerky-real.jpg": (await readBytes("dist/assets/ergong-jerky-real.jpg")).toString("base64"),
+  "/assets/ergong-ip-chibi-v1.png": (await readBytes("dist/assets/ergong-ip-chibi-v1.png")).toString("base64"),
+  "/assets/ergong-ip-v2.png": (await readBytes("dist/assets/ergong-ip-v2.png")).toString("base64"),
   "/assets/ergong-icon.svg": (await readBytes("dist/assets/ergong-icon.svg")).toString("base64"),
   "/assets/ergong-touch-icon.png": (await readBytes("dist/assets/ergong-touch-icon.png")).toString("base64"),
 };
@@ -50,7 +54,11 @@ const settings = {
   about:"貳恭做的是濕式牛肉乾——不是嚼到腮幫子痠的那種。\n整塊牛腱心手切逆紋，低溫濕滷 6 小時，咬下去還吃得到肉纖維的濕潤感。\n\n一開始只是滷給家裡人吃，滷太多、朋友一直要，就變成現在這樣。\n沒有加防腐劑，所以保存期短，請冷藏、儘快吃完。",
 };
 
+const myshipSource=(await readText("scripts/myship-source.mjs")).replaceAll("export ", "");
+const googleIdentity=(await readText("scripts/google-identity.mjs")).replaceAll("export ", "");
 const worker = `
+${myshipSource}
+${googleIdentity}
 const TEXT_ASSETS = ${JSON.stringify(textAssets)};
 const BINARY_ASSETS = ${JSON.stringify(binaryAssets)};
 const CONTENT_TYPES = ${JSON.stringify(contentTypes)};
@@ -97,6 +105,7 @@ async function getSettings(database, includePassword = false) {
 }
 
 async function getProducts(database, includeInactive = false) {
+  if(!includeInactive){const source=await fetchMyship();return source.products;}
   const sql = includeInactive
     ? "SELECT data FROM products ORDER BY sort_order ASC, updated_at DESC"
     : "SELECT data FROM products WHERE active = 1 ORDER BY sort_order ASC, updated_at DESC";
@@ -159,7 +168,7 @@ function cleanSettings(input, current) {
 async function publicStore(database) {
   const settings = await getSettings(database);
   const products = await getProducts(database, false);
-  return {settings: publicSettings(settings), products};
+  return {settings: {...publicSettings(settings), myshipUrl:MYSHIP_URL,cats:["單包口味","組合優惠"]}, products, sync:{source:"myship",updatedAt:myshipCache?.updatedAt,refreshSeconds:300}};
 }
 
 async function adminStore(database) {
@@ -169,18 +178,20 @@ async function adminStore(database) {
   return {settings: publicSettings(settings), products, orders};
 }
 
-async function createOrder(database, payload) {
+async function createOrder(database, payload, buyer) {
   const customer = payload?.customer || {};
   const items = Array.isArray(payload?.items) ? payload.items : [];
   const name = String(customer.name || "").trim();
   const tel = String(customer.tel || "").trim();
-  const mail = String(customer.mail || "").trim().replace(/\uFF20/g, "@").replace(/\s+/g, "");
+  const mail = String(buyer.email || "").trim().replace(/\uFF20/g, "@").replace(/\s+/g, "");
   const addr = String(customer.addr || "").trim();
+  const instagram = String(customer.instagram || "").trim().replace(/^@/, "");
   const emailOk = !mail || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/i.test(mail);
-  if (!name || !/^09\\d{8}$/.test(tel) || !emailOk || !addr || !customer.agree || !items.length) {
-    return fail("請確認姓名、手機、Email、取貨門市、取貨同意與商品內容。");
+  if (!name || !/^09\\d{8}$/.test(tel) || !emailOk || !addr || !/^[A-Za-z0-9._]{1,30}$/.test(instagram) || !customer.agree || !items.length) {
+    return fail("請確認姓名、手機、IG 帳號、取貨門市、取貨同意與商品內容。");
   }
   const settings = await getSettings(database);
+  await fetchMyship({force:true});
   const products = await getProducts(database, false);
   const byId = new Map(products.map((product) => [product.id, product]));
   const lines = [];
@@ -195,6 +206,7 @@ async function createOrder(database, payload) {
     if (specName && !spec) return fail("商品規格已更新，請重新選擇後再下單。");
     counts.set(product.id, (counts.get(product.id) || 0) + qty);
     const price = product.price + (spec ? spec.d : 0);
+    if(Number(item.price)!==price)return fail("商品價格已更新，請重新整理購物車後再下單。");
     sub += price * qty;
     lines.push({key:product.id + "|" + specName, id:product.id, spec:specName, price, qty, name:product.name});
   }
@@ -205,7 +217,7 @@ async function createOrder(database, payload) {
   const fee = sub >= settings.freeOver ? 0 : settings.shipFee;
   const order = {
     no:"EG-" + Date.now().toString(36).toUpperCase() + "-" + Math.floor(Math.random() * 9000 + 1000),
-    name,tel,mail,ship:"超商冷凍取貨",pay:"超商貨到付款",addr,
+    name,tel,mail,instagram,identity:{provider:"google",googleSub:buyer.googleSub,email:buyer.email},ship:"超商冷凍取貨",pay:"超商貨到付款",addr,
     note:String(customer.note || "").trim().slice(0, 600),
     items:lines,sub,fee,total:sub + fee,status:"待確認",at:now(),
   };
@@ -260,9 +272,16 @@ async function updateOrderStatus(database, no, payload) {
 }
 
 async function handleApi(request, env, path) {
+  if(request.method === "GET" && path === "/api/auth/config")return authConfig(request,env);
+  if(request.method === "POST" && path === "/api/auth/google"){
+    const payload=await parseJson(request);const buyer=await verifyGoogleBuyer(request,env,payload?.credential);return json({buyer});
+  }
+  if(request.method === "POST" && path === "/api/orders"){
+    const payload=await parseJson(request);const buyer=await verifyGoogleBuyer(request,env,payload?.credential);
+    return createOrder(await db(env),payload,buyer);
+  }
   const database = await db(env);
   if (request.method === "GET" && path === "/api/store") return json(await publicStore(database));
-  if (request.method === "POST" && path === "/api/orders") return createOrder(database, await parseJson(request));
   if (request.method === "POST" && path === "/api/admin/login") {
     const payload = await parseJson(request);
     await requireAdmin(database, payload?.password);
