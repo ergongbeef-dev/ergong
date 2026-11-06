@@ -30,3 +30,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_status
 ON orders(status);
 
 PRAGMA optimize;
+
+CREATE TABLE IF NOT EXISTS order_notifications (
+  order_no TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'pending',
+  provider_id TEXT,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -62,3 +62,13 @@ Session Cookie 以 HMAC 簽章且有 HttpOnly、Secure、SameSite=Lax、__Host- 
 6. 使用一般外部瀏覽器登入，確認 /api/auth/config 的 buyer 僅含 googleSub、email、provider、expiresAt，登出後 buyer 為 null；不能在未實測前宣稱 Google 畫面不顯示姓名／頭像。
 
 測試 `npm test` 包含精確 scope、state、nonce、PKCE、簽章／過期 session、跨站下單拒絕、模擬完整回呼及排除姓名／頭像／token 持久化。
+
+## 訂單 Email 通知
+
+訂單與 order_notifications 的 pending 紀錄在同一筆交易保存，成功後才透過 Resend 通知固定收件人 ergongbeef@gmail.com。
+通知內容為收件人姓名、電話、IG、門市、商品、金額、備註，不寄送 Google sub、登入憑證或 Google profile。
+需同時啟用 TURSO_DATABASE_URL、TURSO_AUTH_TOKEN、RESEND_API_KEY、ORDER_EMAIL_FROM 後重新部署。
+ORDER_EMAIL_FROM 應為 Resend 已驗證的寄件地址；若使用 onboarding@resend.dev，僅能寄至 Resend 帳號擁有者信箱，正式使用應驗證自有寄件網域。
+寄信失敗不撤銷訂單，不向買家回報訂單失敗。待寄紀錄不會自動重試，管理員可用 POST /api/admin/orders/{orderNo}/notification 與原後台密碼重試；該端點不對一般買家開放。
+Resend 回傳成功代表接受寄送，不代表信件已進入收件匣；需以實際收到的測試信驗證。
+完整測試需先完成資料庫與寄信平台帳號、環境變數設定，再使用測試訂單確認保存與 Gmail 收信。

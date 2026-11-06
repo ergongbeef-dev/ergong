@@ -11,7 +11,7 @@ async function handle(request){
   if(path==='/api/store'&&request.method==='GET'){
    const source=await fetchMyship();return Response.json({settings:defaults,products:source.products,sync:{source:'myship',updatedAt:source.updatedAt,refreshSeconds:300}},{headers:{'cache-control':'no-store'}});
   }
-  const env={GOOGLE_CLIENT_ID:process.env.GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET:process.env.GOOGLE_CLIENT_SECRET,AUTH_SESSION_SECRET:process.env.AUTH_SESSION_SECRET,GOOGLE_REDIRECT_URI:process.env.GOOGLE_REDIRECT_URI};
+  const env={RESEND_API_KEY:process.env.RESEND_API_KEY,ORDER_EMAIL_FROM:process.env.ORDER_EMAIL_FROM,GOOGLE_CLIENT_ID:process.env.GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET:process.env.GOOGLE_CLIENT_SECRET,AUTH_SESSION_SECRET:process.env.AUTH_SESSION_SECRET,GOOGLE_REDIRECT_URI:process.env.GOOGLE_REDIRECT_URI};
   if(path.startsWith('/api/auth/'))return googleAuth(request,env);
   if(!configuredDatabase())return Response.json({error:'訂單資料庫尚未設定，暫時無法下單。'},{status:503});
   env.DB=await database();
