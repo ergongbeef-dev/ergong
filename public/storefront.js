@@ -456,7 +456,7 @@ function vCheckout(){
   const myship=safeUrl(DB.settings.myshipUrl)||'https://myship.7-11.com.tw/general/detail/GM2505137999911';
   return `<section class="blk"><div class="wrap">
     <div class="blk__hd"><h2>選擇你的下單方式。</h2><p>7‑11 冷凍取貨・貨到付款</p></div>
-    <section class="myship-checkout panel" aria-label="賣貨便下單"><span class="section-label">直接在賣貨便下單</span><h3>有賣貨便帳號？到賣場繼續買。</h3><p>前往貳恭官方賣場，依賣貨便流程登入、選擇商品與取貨門市，再完成下單。</p><a class="btn btn--primary" id="checkout-myship" href="${esc(myship)}" target="_blank" rel="noopener noreferrer">前往賣貨便下單</a><p class="note">將在新分頁開啟。本站購物車與收件資料不會自動傳送，請在賣場重新選擇商品；價格、運費及訂單結果請依賣貨便頁面確認。</p></section>
+    <section class="myship-checkout panel" aria-label="賣貨便下單"><span class="section-label">直接在賣貨便下單</span><h3>有賣貨便帳號？</h3><p>歡迎使用賣貨便購買。</p><p>前往貳恭賣貨便賣場，依賣貨便流程登入、再完成下單。</p><a class="btn btn--primary" id="checkout-myship" href="${esc(myship)}" target="_blank" rel="noopener noreferrer">前往賣貨便下單</a><p class="note">將在新分頁開啟。本站購物車與收件資料不會自動傳送，請在賣場重新選擇商品；價格、運費及訂單結果請依賣貨便頁面確認。</p></section>
     <div class="two">
       <div class="panel" style="padding:24px">
         <div class="line-draft-intro"><span class="section-label">或使用 LINE 人工接單</span><h3>在這裡製作明細，再傳 LINE 確認。</h3><p>不需要 Google 登入。以下資料僅在目前頁面製作草稿，不會自動送出訂單或寄信。</p></div>
