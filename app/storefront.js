@@ -4,7 +4,7 @@ import Script from 'next/script';
 // and its dialog. Keeping those DOM boundaries avoids two renderers per subtree.
 const go=(view)=>window.go?.(view);
 const jump=(id)=>window.jumpSection?.(id);
-export default function Storefront(){return <>
+export default function Storefront({initialHTML,initialData}){return <>
 <a className="skip-link" href="#app">跳至主要內容</a>
 <div className="preview-notice">人工接單 · 產生明細後請傳 LINE 確認</div>
 <header className="bar"><div className="wrap bar__in">
@@ -12,7 +12,9 @@ export default function Storefront(){return <>
 <nav className="main" id="nav" aria-label="主要導覽"><button data-v="home" onClick={()=>go('home')}>首頁</button><button data-v="shop" onClick={()=>go('shop')}>全部商品</button><button data-v="about" onClick={()=>jump('brand-story')}>關於貳恭</button><button data-v="terms" onClick={()=>jump('faq')}>購買須知</button></nav>
 <div className="bar__act"><button className="iconbtn menubtn" onClick={()=>window.toggleMenu?.()} aria-label="開啟選單" aria-controls="nav" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><button className="iconbtn" onClick={()=>window.openSearch?.()} aria-label="搜尋商品"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button><button className="iconbtn" id="cartButton" onClick={()=>go('cart')} aria-label="購物車，目前 0 件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l3 12h10l3-9H6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span className="badge hidden" id="cartBadge">0</span></button></div>
 </div></header>
-<main id="app" tabIndex={-1}><section className="store-loading wrap" role="status" aria-live="polite"><span className="en">ER GONG</span><h1>好肉，值得等一下。</h1><p>正在載入商品與最新價格…</p><p>若等候較久，可先透過 <a href="https://line.me/R/ti/p/@634xhfoj">官方 LINE</a> 聯繫我們。</p></section></main><noscript><div className="wrap"><p className="note">請開啟 JavaScript 以瀏覽商品與使用購物車。</p></div></noscript>
+<main id="app" tabIndex={-1} dangerouslySetInnerHTML={{__html:initialHTML}}/>
+<script id="catalog-bootstrap" type="application/json" dangerouslySetInnerHTML={{__html:JSON.stringify(initialData).replace(/</g,'\\u003c')}}/>
+<noscript><div className="wrap"><p className="note">商品與品牌資訊可直接瀏覽；使用購物車請開啟 JavaScript，或透過官方 LINE 詢問。</p></div></noscript>
 <footer className="ft"><div className="wrap ft__in"><div className="ft__lk"><a href="/terms">購買須知</a><a href="/privacy">隱私權政策</a><a id="ftIg" href="https://www.instagram.com/ergong_beef.ig/" target="_blank" rel="noopener noreferrer">Instagram</a><a id="ftLine" href="https://line.me/R/ti/p/@634xhfoj" target="_blank" rel="noopener noreferrer">LINE 官方帳號</a></div><div className="ft__cp">貳恭 ER GONG ・ 濕式牛肉乾</div></div></footer>
 <div className="fab"><a className="l" id="fabLine" href="https://line.me/R/ti/p/@634xhfoj" target="_blank" rel="noopener noreferrer">加 LINE 好友</a></div><dialog id="modalHost" aria-label="操作視窗"/>
 <Script src="/storefront.js" strategy="afterInteractive"/>

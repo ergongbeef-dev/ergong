@@ -1,0 +1,4 @@
+export const origin='https://ergong.vercel.app';
+export const jsonLD=value=>JSON.stringify(value).replace(/</g,'\\u003c');
+export const organization={'@context':'https://schema.org','@type':'Organization','@id':origin+'/#organization',name:'貳恭 ER GONG',url:origin,logo:origin+'/assets/ergong-touch-icon.png',sameAs:['https://www.instagram.com/ergong_beef.ig/','https://line.me/R/ti/p/@634xhfoj']};
+export function productSchema(p){return {'@context':'https://schema.org','@type':'Product','@id':origin+'/products/'+p.id+'#product',name:p.name,description:p.desc,sku:p.id,image:p.photos.map(photo=>origin+photo),brand:{'@type':'Brand',name:'貳恭 ER GONG'},offers:{'@type':'Offer',url:origin+'/products/'+p.id,priceCurrency:'TWD',price:p.price,availability:'https://schema.org/'+(p.stock===0?'OutOfStock':'InStock'),seller:{'@id':origin+'/#organization'}}};}

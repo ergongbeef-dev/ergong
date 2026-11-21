@@ -70,3 +70,13 @@ Session Cookie 以 HMAC 簽章且有 HttpOnly、Secure、SameSite=Lax、__Host- 
 ## 人工接單與顧客備份
 
 目前結帳只在瀏覽器產生草稿，不呼叫 POST /api/orders，不自動清空購物車、不保存個資至瀏覽器儲存空間，也不將草稿送至資料庫。Google 登入保留，但下載草稿不包含 Google ID／Email。顧客可下載 UTF-8 TXT 或使用瀏覽器列印存 PDF，重新整理會清除暫存草稿。顧客需自行透過 LINE 傳送，店家在 LINE 收件、核對庫存金額後回覆確認。無集中訂單後台，也無法跨裝置查詢歷史訂單。下載檔案包含收件個資，須妥善保管。
+
+
+## 首頁預先產生與社群分享
+
+- 首頁及 `/products/[id]` 使用 SSG / ISR，每 300 秒重新驗證公開商品資料；失敗時保留版本庫內商品快照。原始 HTML 含品牌、流程、FAQ 與可爬取商品連結。
+- 首屏由 `public/home-content.mjs` 共用版型產生。瀏覽器直接讀取預先產生的商品資料，背景 `/api/store` 同步只更新商品區；API 失敗不清空首頁。
+- 商品照片存於 `public/assets/products/`（WebP）。執行 `npm run sync:catalog` 可重新同步公開商品照片、對照表與商品快照，檢查差異後隨程式碼發布。新圖片尚未同步時使用本站商品照片備援，不直接引用外部圖床。
+- 執行 `npm run image:share` 以既有商品照片及品牌角色重新製作 1200×630 分享圖。Open Graph / Twitter 中使用版本化圖片網址。
+- 各商品頁含 Product/Offer JSON-LD；首頁含 Organization。沒有加入未經確認的評價或評分，社群區僅連到官方 Instagram。
+- `npm test` 包含原始首頁內容、空商品骨架、HTML/JSON 跳脫、本地圖片及價格結構化資料驗證。發布前另執行 `npm run build`。

@@ -438,3 +438,11 @@ body.flow-open{overflow:hidden}.flow-backdrop{position:fixed;inset:0;background:
 @media print{body[data-view="done"] .bar,body[data-view="done"] .ft,body[data-view="done"] .fab,body[data-view="done"] .preview-notice,body[data-view="done"] .receipt-actions,body[data-view="done"] .steps{display:none!important}body[data-view="done"] .flow-sheet{position:static!important;overflow:visible!important;max-height:none!important}body[data-view="done"] .copybox{max-height:none!important;overflow:visible!important;white-space:pre-wrap}body[data-view="done"] .panel{box-shadow:none;border:0}}
 
 .store-loading{min-height:60vh;display:flex;flex-direction:column;justify-content:center;padding-block:4rem}.store-loading h1{font-size:clamp(1.7rem,5vw,3rem);margin:1rem 0}.store-loading p{margin:.5rem 0}.policy-page{min-height:70vh}.policy-page h2{font-size:1.25rem;margin-top:2rem}.policy-page p{line-height:1.9}
+
+/* Initial HTML and live catalog share the same layout. */
+.hero__cta .btn{white-space:nowrap}.social-panel{display:flex;align-items:center;justify-content:space-between;gap:24px}.social-panel h2{font-size:clamp(1.4rem,4vw,2rem);margin:0 0 12px}.social-panel .btn{white-space:nowrap}.social-section{background:#f8da72;border-top:var(--bd)}
+.skeleton-card{border:var(--bd);padding:12px;background:var(--paper-lt)}.skeleton-card div{aspect-ratio:1;background:#dedbd5}.skeleton-card span{display:block;height:18px;margin:16px 0;background:#dedbd5}.skeleton-card span:last-child{width:60%}
+.product-document{padding-block:36px}.product-document .product-detail{white-space:pre-line;line-height:1.9}.product-document h1{font-size:clamp(1.5rem,4vw,2.5rem)}.product-document .pd{margin-top:32px}.product-document .pd__main img{width:100%;height:auto}.product-document .product-actions{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}
+@media(max-width:600px){.hero__cta{flex-wrap:wrap}.hero__cta .btn:first-child{flex:1 1 150px}.hero__cta .btn{padding-inline:12px}.social-panel{align-items:flex-start;flex-direction:column}.social-panel .btn{width:100%}}
+
+.card__img{display:block}.card__nm a{color:inherit;text-decoration:none}.card__nm a:hover{text-decoration:underline}.catalog-status{font-size:.875rem;min-height:1.6em;margin:8px 0 16px;color:#65452d}.catalog-status:empty{display:none}

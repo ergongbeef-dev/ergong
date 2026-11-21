@@ -4,7 +4,7 @@ import {database,configuredDatabase} from '../../../lib/database';
 import {fetchMyship,MYSHIP_URL} from '../../../scripts/myship-source.mjs';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
-const defaults={lineUrl:'https://line.me/R/ti/p/@634xhfoj',myshipUrl:MYSHIP_URL,igUrl:'https://www.instagram.com/ergong_beef.ig/',freeOver:Number(process.env.FREE_SHIPPING_OVER||1999),shipFee:Number(process.env.SHIP_FEE||250),cats:['單包口味','組合優惠'],marquee:[],about:'貳恭 ER GONG 濕式牛肉乾。'};
+import {settings as defaults} from '../../../scripts/store-settings.mjs';
 async function handle(request){
  const path=new URL(request.url).pathname;
  try{

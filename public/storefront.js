@@ -50,9 +50,9 @@ const store = {
       DB = {products:data.products||base.products, settings:{...base.settings,...(data.settings||{})}, orders:[]};
       storageAvailable = true;
     }catch(e){
-      DB = seed();
-      storageAvailable = false;
-      DB.products=[];toast('商品暫時無法更新，請稍後重試或前往賣貨便。');
+      storageAvailable=false;
+      if(!DB){DB=seed();DB.products=[];}
+      toast('商品暫時無法更新，保留目前內容；價格與庫存請透過 LINE 確認。');
     }
   },
   async save(){
@@ -141,7 +141,7 @@ function imgOf(p,idx){
 }
 
 /* ---------- IP 角色（首圖） ---------- */
-function mascot(){return `<img class="hero__mascot" src="assets/ergong-ip-chibi-v1.png" alt="貳恭 Q 版品牌 IP：金黃色紋理頭部、棕色牛角，穿著深綠上衣並比讚" width="1145" height="1374" decoding="async" fetchpriority="high">`}
+function mascot(){return `<img class="hero__mascot" src="/assets/ergong-ip-chibi.webp" alt="貳恭 Q 版品牌 IP：金黃色紋理頭部、棕色牛角，穿著深綠上衣並比讚" width="1145" height="1374" decoding="async" fetchpriority="high">`}
 
 /* =========================================================
    前台畫面
@@ -175,6 +175,7 @@ function jumpSection(id){
   closeMenu();document.getElementById(id)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
 }
 function go(v,id){
+  if(!DB||!renderHomeContent)return;
   if(v==='shop'){jumpSection('products');return;}
   if(v==='about'){jumpSection('brand-story');return;}
 
@@ -229,10 +230,10 @@ function cardHtml(p){
       ${out?'<div class="soldout">已售完</div>':''}
     </div>
     <div class="card__bd">
-      <div class="card__nm">${esc(p.name)}</div>
+      <div class="card__nm"><a href="/products/${esc(p.id)}">${esc(p.name)}</a></div>
       <div class="card__ds">${esc(p.desc)}</div>
       <div class="card__pr">${NT(p.price)}${p.orig?`<s>${NT(p.orig)}</s>`:''}</div>
-      <button class="btn btn--sm card__go" onclick="go('product',${arg(p.id)})" aria-label="查看${esc(p.name)}詳細資訊">選購 →</button>
+      <button class="btn btn--sm card__go" onclick="go('product',${arg(p.id)})" aria-label="查看${esc(p.name)}詳細資訊">選購</button>
     </div>
   </article>
   <span style="display:none">${fav}</span>`.replace('<span style="display:none">'+fav+'</span>','');
@@ -249,25 +250,17 @@ function toggleFav(e,id){
   document.querySelectorAll('[data-favorite-id]').forEach(button=>{if(button.dataset.favoriteId===id){button.setAttribute('aria-pressed',String(selected));button.setAttribute('aria-label',(selected?'取消收藏':'收藏')+p.name);}});
 }
 
-function vHome(){
- const s=DB.settings;
- return `<div class="hero" id="top"><div class="hero__in">
-  <div class="bubble"><span class="eyebrow en">GOOD MEAT. GOOD MOOD.</span><h1><em>貳恭 ER GONG</em>今晚的快樂，<br>來點<span>有肉的。</span></h1><p>咬得到肉的濕式牛肉乾。<br>一包配劇、一包配酒，好好享受每一口。</p><div class="hero__cta"><button class="btn btn--primary" onclick="jumpSection('products')">挑選我的口味 ↘</button><button class="btn" onclick="jumpSection('how-to-order')">怎麼買？</button></div><div class="hero-caption">濕潤肉感 / 濃郁醬香 / 真空包裝</div></div>
-  <div class="hero-art hero-art--reviews" aria-label="貳恭品牌風味介紹">
-    <div class="review-heading"><span class="en">BIG FLAVOR.<br>GOOD MOOD.</span></div>
-    <article class="hero-review hero-review--one"><span class="flavor-kicker">原味派 / ORIGINAL</span><h3>有肉感，<br>才過癮。</h3><p>濕潤肉感 × 濃郁醬香<br>給追劇時光，一點好滋味。</p></article>
-    <article class="hero-review hero-review--two"><span class="flavor-kicker">辣味控 / SPICY</span><h3>來點辣，<br>更對味。</h3><p>一包配飲料，一包和朋友分享。</p></article>
-    ${mascot()}<span class="review-spark" aria-hidden="true">✦</span>
-  </div>
- </div></div>
- <div class="benefit-strip"><span>7‑11 冷凍取貨</span><span>貨到付款</span><span>滿 ${NT(s.freeOver)} 免運</span></div>
- <section class="blk shop-section" id="products"><div class="wrap"><div class="section-label en">01 / PICK YOUR FAVORITE</div><div class="sync-note"><button onclick="refreshCatalog()" aria-label="重新整理商品">↻ 更新商品</button></div>${vShop().replace('<section class="blk"><div class="wrap">','<div class="shop-inner">').replace('</div></section>','</div>')}</div></section>
- <section class="brand-section" id="brand-story"><div class="wrap brand-layout"><div><span class="section-label en">02 / THE ER GONG WAY</span><h2>肉乾，也可以<br><span>很有肉感。</span></h2></div><div><p class="brand-lead">把日常的小餓，<br>變成值得期待的一口。</p><p>貳恭的濕式牛肉乾，帶著濃郁醬香與濕潤口感。無論是追劇、聚會，還是下班後的小酌時光，拆一包，就很對味。</p><div class="brand-tags"><span>真空包裝</span><span>濕式口感</span><span>冷凍配送</span></div></div></div></section>
- <section class="blk order-guide" id="how-to-order"><div class="wrap"><span class="section-label en">03 / JUST THREE STEPS</span><div class="blk__hd"><h2>想吃，就這麼簡單。</h2></div><div class="steps-grid"><article><b class="en">01</b><h3>挑口味、加購物車</h3><p>選好喜歡的商品與數量，隨時查看訂單金額。</p></article><article><b class="en">02</b><h3>填寫取貨資訊</h3><p>留下姓名、手機、IG 帳號與 7‑11 取貨門市。</p></article><article><b class="en">03</b><h3>到店取貨，再付款</h3><p>確認貨到付款取貨同意，送出訂單，等待店家確認。</p></article></div>
- <div class="myship-panel"><div><span class="en">SHOP YOUR WAY</span><h3>習慣用賣貨便？也可以。</h3><p>喜歡直接在這裡買，就加入購物車；也能透過店家的賣貨便賣場訂購。</p></div>${safeUrl(s.myshipUrl)?`<a class="btn" href="${esc(safeUrl(s.myshipUrl))}" target="_blank" rel="noopener">前往 7‑11 賣貨便 ↗</a>`:`<a class="btn" href="${esc(safeUrl(s.lineUrl))}" target="_blank" rel="noopener">詢問賣貨便連結 ↗</a>`}</div></div></section>
- <section class="blk faq-section" id="faq"><div class="wrap faq-layout"><div><span class="section-label en">04 / BEFORE YOU ORDER</span><h2>買之前，<br>先聊一下。</h2></div><div class="faq-list"><details open><summary>怎麼取貨、怎麼付款？</summary><p>目前使用 7‑11 冷凍取貨、貨到付款。請填寫收件人真實姓名、手機與取貨門市，收到通知後到店付款取貨。</p></details><details><summary>運費怎麼計算？</summary><p>商品金額滿 ${NT(s.freeOver)} 免運，未滿運費 ${NT(s.shipFee)}。購物車會自動計算。</p></details><details><summary>下單後多久出貨？</summary><p>接單後製作，出貨約 3–5 個工作日，實際時間以店家確認為準。</p></details><details><summary>商品有問題，怎麼聯絡？</summary><p>請保留包裝與商品照片，透過 LINE 或 Instagram 聯絡我們。</p></details></div></div></section>
- <section class="closing-banner"><div class="wrap"><span class="en">ONE MORE BITE?</span><h2>把好吃的，帶回日常。</h2><button class="btn btn--primary" onclick="jumpSection('products')">開始挑選 →</button></div></section>`;
+let renderHomeContent;
+function vHome(){return renderHomeContent({settings:DB.settings,catalogHtml:!DB.products.length&&storageAvailable?null:vShop().replace('<section class="blk"><div class="wrap">','<div class="shop-inner">').replace('</div></section>','</div>')});}
+function updateHomeCatalog(){
+ const region=document.getElementById('catalog-content');
+ if(!region||view!=='home')return;
+ region.innerHTML=vShop().replace('<section class="blk"><div class="wrap">','<div class="shop-inner">').replace('</div></section>','</div>');
+ document.querySelectorAll('[data-free-shipping]').forEach(el=>el.textContent=NT(DB.settings.freeOver));
+ document.querySelectorAll('[data-shipping-fee]').forEach(el=>el.textContent=NT(DB.settings.shipFee));
+ syncCart();saveShopping();updateCartBadge();
 }
+
 let mqT=null;
 function startMarquee(){
   if(document.hidden||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
@@ -276,7 +269,14 @@ function startMarquee(){
   let i=0; clearInterval(mqT);
   mqT=setInterval(()=>{i=(i+1)%list.length;el.textContent=list[i];},4800);
 }
-async function refreshCatalog(){if(view!=='home')return;const old=DB;await store.load();if(!storageAvailable){DB=old;toast('無法更新商品，保留上次內容。');return;}render();toast('商品資訊已更新');}
+async function refreshCatalog(){
+ const status=document.getElementById('catalog-status');if(status)status.textContent='正在確認最新價格…';
+ await store.load();
+ const currentStatus=document.getElementById('catalog-status');
+ if(currentStatus)currentStatus.textContent=storageAvailable?'':'暫時無法更新商品，請透過官方 LINE 確認價格與庫存。';
+ if(!storageAvailable)return;
+ if(view==='home')updateHomeCatalog();else if(view!=='admin')render();
+}
 function selectFilter(value){filter=value;render();document.querySelectorAll('[data-filter]').forEach(button=>{if(button.dataset.filter===value)button.focus({preventScroll:true});});}
 
 function vShop(){
@@ -567,7 +567,7 @@ function vAbout(){
   </div></section>`;
 }
 function vTerms(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>購買須知</h2><h4>人工 LINE 接單</h4><p>本頁產生的是下單草稿，不代表訂單成立，也不會自動扣款、寄信或送入訂單資料庫。請下載或複製明細，自行傳至官方 LINE；經店家回覆確認商品、金額與配送安排後，訂單才成立。</p><h4>價格與運費</h4><p>商品卡與商品說明的優惠價依賣貨便同步售價顯示。運費、免運條件與合計請見購物車及草稿；若有價格疑問，請在確認前透過 LINE 詢問。</p><h4>付款與配送</h4><p>目前採超商冷凍取貨、貨到付款。請填寫正確的收件姓名、手機與取貨門市；實際製作、出貨及到貨時間由店家於 LINE 確認。</p><h4>保存與過敏原</h4><p>商品保存期限、方式、成分與過敏原請依各商品說明及實際包裝標示。收到後請依標示妥善保存，開封後儘速食用。</p><h4>退換貨與客服</h4><p>若收到破損、變質或漏寄商品，請保留包裝與照片，儘速透過官方 LINE 聯繫。退換貨依實際商品條件與適用法令辦理。需要統編或其他協助，請於確認訂單時提出。</p></div></section>";}
-function vPrivacy(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>隱私權政策</h2><h4>資料處理者與聯絡方式</h4><p>本網站由貳恭 ER GONG 經營。資料相關問題或權利申請，請透過官方 LINE（@634xhfoj）聯繫。更新日期：2026 年 11 月 21 日。</p><h4>資料類別與用途</h4><p>Google 登入僅要求 openid email，以 sub 作為唯一帳號識別，並使用 Email 顯示登入狀態；不儲存 Google 姓名或頭像，不讀取 Gmail、聯絡人或密碼。下單表單使用收件姓名、手機、IG 帳號、取貨門市、訂購品項及備註，在瀏覽器製作明細，供你自行傳送給店家確認、聯繫與安排取貨。</p><h4>草稿與儲存方式</h4><p>姓名、手機、IG、門市及備註僅留在目前頁面記憶體，不寫入網站訂單資料庫或瀏覽器長期儲存，也不自動寄信。重新整理或關閉頁面後須重新填寫。購物車及收藏會保存在本機 localStorage，直到你清除網站資料。下載的 TXT、PDF 與剪貼簿內容由你自行保管，關閉頁面不會刪除這些副本。</p><h4>登入 Cookie 與保存期間</h4><p>網站使用 HttpOnly、Secure、SameSite Cookie 維持登入。登入 session 含 Google sub、Email 與到期時間，最長一小時；登入驗證用 Cookie 最長十分鐘。登出會清除登入 Cookie，既有到期 Cookie 由瀏覽器處理。網站不另建立會員個資資料庫。</p><h4>資料對象、地區與外部服務</h4><p>草稿不會自動傳送給 LINE 或店家。你自行傳送後，LINE 與店家會處理所提供的內容，用於人工接單與客服；配送時會使用必要的收件與門市資訊。LINE 訊息及交易紀錄依服務政策、履約需求與適用法令保存，相關刪除需求請聯繫店家。Google 登入、Google Fonts、賣貨便商品圖片及 Vercel 主機會因提供服務接收 IP、請求時間、瀏覽器等連線資訊，可能於臺灣境外處理，依各服務政策管理；網站不會將表單個資放入網址或主動寫入應用程式日誌。</p><h4>你的權利與選擇</h4><p>你可透過官方 LINE 請求查詢、閱覽、取得複本、補充更正、停止蒐集處理利用或刪除個人資料；店家將核對必要身分並依適用法令辦理。你可清除網站資料或登出，亦可在 Google 帳戶撤銷授權。不提供登入及必要收件資料時，無法使用網站製作完整下單明細，可先以 LINE 詢問。請勿在備註填寫身分證、信用卡等無關資料。</p></div></section>";}
+function vPrivacy(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>隱私權政策</h2><h4>資料處理者與聯絡方式</h4><p>本網站由貳恭 ER GONG 經營。資料相關問題或權利申請，請透過官方 LINE（@634xhfoj）聯繫。更新日期：2026 年 11 月 21 日。</p><h4>資料類別與用途</h4><p>Google 登入僅要求 openid email，以 sub 作為唯一帳號識別，並使用 Email 顯示登入狀態；不儲存 Google 姓名或頭像，不讀取 Gmail、聯絡人或密碼。下單表單使用收件姓名、手機、IG 帳號、取貨門市、訂購品項及備註，在瀏覽器製作明細，供你自行傳送給店家確認、聯繫與安排取貨。</p><h4>草稿與儲存方式</h4><p>姓名、手機、IG、門市及備註僅留在目前頁面記憶體，不寫入網站訂單資料庫或瀏覽器長期儲存，也不自動寄信。重新整理或關閉頁面後須重新填寫。購物車及收藏會保存在本機 localStorage，直到你清除網站資料。下載的 TXT、PDF 與剪貼簿內容由你自行保管，關閉頁面不會刪除這些副本。</p><h4>登入 Cookie 與保存期間</h4><p>網站使用 HttpOnly、Secure、SameSite Cookie 維持登入。登入 session 含 Google sub、Email 與到期時間，最長一小時；登入驗證用 Cookie 最長十分鐘。登出會清除登入 Cookie，既有到期 Cookie 由瀏覽器處理。網站不另建立會員個資資料庫。</p><h4>資料對象、地區與外部服務</h4><p>草稿不會自動傳送給 LINE 或店家。你自行傳送後，LINE 與店家會處理所提供的內容，用於人工接單與客服；配送時會使用必要的收件與門市資訊。LINE 訊息及交易紀錄依服務政策、履約需求與適用法令保存，相關刪除需求請聯繫店家。Google 登入、Google Fonts 及 Vercel 主機會因提供服務接收 IP、請求時間、瀏覽器等連線資訊，可能於臺灣境外處理，依各服務政策管理；網站不會將表單個資放入網址或主動寫入應用程式日誌。</p><h4>你的權利與選擇</h4><p>你可透過官方 LINE 請求查詢、閱覽、取得複本、補充更正、停止蒐集處理利用或刪除個人資料；店家將核對必要身分並依適用法令辦理。你可清除網站資料或登出，亦可在 Google 帳戶撤銷授權。不提供登入及必要收件資料時，無法使用網站製作完整下單明細，可先以 LINE 詢問。請勿在備註填寫身分證、信用卡等無關資料。</p></div></section>";}
 
 /* ---------- 搜尋 ---------- */
 function openSearch(){
@@ -887,12 +887,17 @@ function readRoute(){
 }
 
 (async function init(){
-  await store.load();
+  ({renderHome:renderHomeContent}=await import('/home-content.mjs'));
+  try{DB=JSON.parse(document.getElementById('catalog-bootstrap').textContent);}catch{DB=seed();DB.products=[];}
+  sourceSync=DB.sync||null;
   try{const saved=JSON.parse(localStorage.getItem(SHOP_KEY)||'null');if(saved){cart=Array.isArray(saved.cart)?saved.cart:[];favs=Array.isArray(saved.favs)?saved.favs:[];}}catch(e){}
+  const initialSection=location.hash.slice(1);
   readRoute();
   if('scrollRestoration' in history)history.scrollRestoration='manual';
   routeSerial=Date.now()+Math.random();history.replaceState(routeSnapshot(),'',routeURL());
   render({preserveScroll:false});
+  if(['products','brand-story','how-to-order','faq'].includes(initialSection))document.getElementById(initialSection)?.scrollIntoView();
+  refreshCatalog();
 })();
 
 document.addEventListener('keydown',event=>{if(event.key!=='Tab'||modalHost.open)return;const sheet=document.querySelector('.flow-sheet');if(!sheet)return;const items=[...sheet.querySelectorAll('button:not([disabled]),a[href],input,select,textarea,[tabindex="0"]')].filter(el=>el.getClientRects().length);if(!items.length)return;const first=items[0],last=items[items.length-1];if(event.shiftKey&&(document.activeElement===first||!sheet.contains(document.activeElement))){event.preventDefault();last.focus();}else if(!event.shiftKey&&(document.activeElement===last||!sheet.contains(document.activeElement))){event.preventDefault();first.focus();}});
