@@ -1,5 +1,5 @@
 
-/* Storefront data is loaded from the hosted database. Cart/favorites stay device-local. */
+/* Catalog comes from Myship; cart/favorites stay device-local. */
 const SHOP_KEY = 'ergong:shopping:v3';
 let DB = null;
 let storageAvailable = true;
@@ -566,49 +566,8 @@ function vAbout(){
     </div>
   </div></section>`;
 }
-function vTerms(){
-  const s=DB.settings;
-  return `<section class="blk"><div class="wrap doc">
-    <h2>購買須知</h2><p class="section-kicker">下單前請先看過</p><div class="diamond">◆ ◇ ◆</div>
-    <h4>製作與出貨</h4>
-    <ul>
-      <li>全品項為接單後製作，一般 3–5 個工作日內出貨；遇連假或大量訂單會於 LINE 公告。</li>
-      <li>目前統一使用超商冷凍取貨。</li>
-    </ul>
-    <h4>運費</h4>
-    <ul><li>單筆滿 ${NT(s.freeOver)} 免運，未滿收 ${NT(s.shipFee)}。</li></ul>
-    <h4>保存</h4>
-    <ul>
-      <li>不加防腐劑，冷藏 14 天內食用完畢，冷凍可放 3 個月。</li>
-      <li>收到後請立即冷藏或冷凍，開封後請盡快吃完。</li>
-    </ul>
-    <h4>退換貨</h4>
-    <ul>
-      <li>退換貨需求請透過 LINE 聯繫，依商品實際保存條件及適用規定辦理。</li>
-      <li>若收到商品有破損、變質或漏寄，請保留包裝與照片，儘速透過 LINE 聯繫我們協助處理。</li>
-    </ul>
-    <h4>付款</h4>
-    <ul>
-      <li>付款方式為超商貨到付款：顧客於指定超商取貨時付款。</li>
-      <li>送出後請將訂單明細傳到貳恭 LINE，收到回覆確認後訂單才會成立。</li>
-    </ul>
-    <h4>發票</h4>
-    <ul><li>需要統編請於訂單備註填寫公司名稱與統編。</li></ul>
-  </div></section>`;
-}
-function vPrivacy(){
-  return `<section class="blk"><div class="wrap doc">
-    <h2>隱私權政策</h2><p style="color:var(--jerky);font-weight:700;margin-top:4px">訂單資料的使用方式</p><div class="diamond">◆ ◇ ◆</div>
-    <h4>商品、設定與購物車</h4>
-    <p>商品設定、購物車和收藏會保存在目前瀏覽器，用於瀏覽與下單。</p>
-    <h4>取貨訂單資料</h4>
-    <p>目前採人工接單。收件姓名、電話、IG、門市及購買明細只用於本頁產生草稿，不提交至訂單資料庫，也不自動寄信。下載檔案由你自行保管；傳送到 LINE 須由你確認對象並送出，資料將由 LINE 與店家處理。草稿不包含 Google 帳號識別碼與 Email。網站不會自動扣款。</p>
-    <h4>外部連結與圖片</h4>
-    <p>Google 登入由 Google 提供；本網站僅保留 Google 帳號識別碼與 email，不儲存 Google 姓名或頭像，也不取得 Gmail 密碼、信件或聯絡人。收件人姓名由你在結帳時另外填寫，僅用於配送。登入以 HttpOnly、Secure Cookie 維持，Google 憑證不寫入購物車、localStorage 或日誌。點選 LINE、Instagram 會前往各服務；字型由 Google Fonts 載入。若你設定外部商品照片網址，瀏覽器會向該圖片網站載入照片。</p>
-    <h4>清除本機資料</h4>
-    <p>你可以在瀏覽器設定中清除此網站的網站資料，還原本機的商品設定、購物車與收藏。</p>
-  </div></section>`;
-}
+function vTerms(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>購買須知</h2><h4>人工 LINE 接單</h4><p>本頁產生的是下單草稿，不代表訂單成立，也不會自動扣款、寄信或送入訂單資料庫。請下載或複製明細，自行傳至官方 LINE；經店家回覆確認商品、金額與配送安排後，訂單才成立。</p><h4>價格與運費</h4><p>商品卡與商品說明的優惠價依賣貨便同步售價顯示。運費、免運條件與合計請見購物車及草稿；若有價格疑問，請在確認前透過 LINE 詢問。</p><h4>付款與配送</h4><p>目前採超商冷凍取貨、貨到付款。請填寫正確的收件姓名、手機與取貨門市；實際製作、出貨及到貨時間由店家於 LINE 確認。</p><h4>保存與過敏原</h4><p>商品保存期限、方式、成分與過敏原請依各商品說明及實際包裝標示。收到後請依標示妥善保存，開封後儘速食用。</p><h4>退換貨與客服</h4><p>若收到破損、變質或漏寄商品，請保留包裝與照片，儘速透過官方 LINE 聯繫。退換貨依實際商品條件與適用法令辦理。需要統編或其他協助，請於確認訂單時提出。</p></div></section>";}
+function vPrivacy(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>隱私權政策</h2><h4>資料處理者與聯絡方式</h4><p>本網站由貳恭 ER GONG 經營。資料相關問題或權利申請，請透過官方 LINE（@634xhfoj）聯繫。更新日期：2026 年 11 月 21 日。</p><h4>資料類別與用途</h4><p>Google 登入僅要求 openid email，以 sub 作為唯一帳號識別，並使用 Email 顯示登入狀態；不儲存 Google 姓名或頭像，不讀取 Gmail、聯絡人或密碼。下單表單使用收件姓名、手機、IG 帳號、取貨門市、訂購品項及備註，在瀏覽器製作明細，供你自行傳送給店家確認、聯繫與安排取貨。</p><h4>草稿與儲存方式</h4><p>姓名、手機、IG、門市及備註僅留在目前頁面記憶體，不寫入網站訂單資料庫或瀏覽器長期儲存，也不自動寄信。重新整理或關閉頁面後須重新填寫。購物車及收藏會保存在本機 localStorage，直到你清除網站資料。下載的 TXT、PDF 與剪貼簿內容由你自行保管，關閉頁面不會刪除這些副本。</p><h4>登入 Cookie 與保存期間</h4><p>網站使用 HttpOnly、Secure、SameSite Cookie 維持登入。登入 session 含 Google sub、Email 與到期時間，最長一小時；登入驗證用 Cookie 最長十分鐘。登出會清除登入 Cookie，既有到期 Cookie 由瀏覽器處理。網站不另建立會員個資資料庫。</p><h4>資料對象、地區與外部服務</h4><p>草稿不會自動傳送給 LINE 或店家。你自行傳送後，LINE 與店家會處理所提供的內容，用於人工接單與客服；配送時會使用必要的收件與門市資訊。LINE 訊息及交易紀錄依服務政策、履約需求與適用法令保存，相關刪除需求請聯繫店家。Google 登入、Google Fonts、賣貨便商品圖片及 Vercel 主機會因提供服務接收 IP、請求時間、瀏覽器等連線資訊，可能於臺灣境外處理，依各服務政策管理；網站不會將表單個資放入網址或主動寫入應用程式日誌。</p><h4>你的權利與選擇</h4><p>你可透過官方 LINE 請求查詢、閱覽、取得複本、補充更正、停止蒐集處理利用或刪除個人資料；店家將核對必要身分並依適用法令辦理。你可清除網站資料或登出，亦可在 Google 帳戶撤銷授權。不提供登入及必要收件資料時，無法使用網站製作完整下單明細，可先以 LINE 詢問。請勿在備註填寫身分證、信用卡等無關資料。</p></div></section>";}
 
 /* ---------- 搜尋 ---------- */
 function openSearch(){

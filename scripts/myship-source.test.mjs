@@ -11,3 +11,13 @@ test('orders without configured Google login fail before database access',async(
  const response=await worker.fetch(new Request('https://test.local/api/orders',{method:'POST',headers:{origin:'https://test.local'},body:JSON.stringify({customer:{mail:'forged@gmail.com'}})}),{},{});
  assert.equal(response.status,503);
 });
+
+test('shared description uses live offer prices and follows later price updates',()=>{
+ const products=parseMyship(html);
+ assert.ok(products.every(p=>!p.detail.includes('優惠價 2250')));
+ assert.match(products[5].detail,/優惠價 2999 元/);
+ const changed=structuredClone(fixture);changed.Spec[5].Cgds_SPrice=2888;
+ const updated=parseMyship('<div data-product="'+JSON.stringify(changed).replaceAll('&','&amp;').replaceAll('"','&quot;')+'"></div>');
+ assert.equal(updated[5].price,2888);assert.match(updated[5].detail,/優惠價 2888 元/);
+ assert.match(updated[5].detail,/100g × 15 包/);
+});

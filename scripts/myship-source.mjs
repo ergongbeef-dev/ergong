@@ -1,6 +1,19 @@
 export const MYSHIP_URL='https://myship.7-11.com.tw/general/detail/GM2505137999911';
 export function decodeEntities(value){return String(value).replace(/&(?:quot|amp|lt|gt|apos|#39|#x[0-9a-f]+|#\d+);/gi,entity=>{const named={'&quot;':'"','&amp;':'&','&lt;':'<','&gt;':'>','&apos;':"'",'&#39;':"'"};if(named[entity])return named[entity];const raw=entity.slice(2,-1);const n=raw[0].toLowerCase()==='x'?parseInt(raw.slice(1),16):parseInt(raw,10);return Number.isFinite(n)&&n<=0x10ffff?String.fromCodePoint(n):entity;});}
 function plainText(value){return decodeEntities(String(value).replace(/<br\s*\/?\s*>|<\/p>/gi,'\n').replace(/<[^>]*>/g,'')).replace(/&nbsp;/g,' ').replace(/\n{3,}/g,'\n\n').trim();}
+// Description is shared by all variants; reconcile named offers with live prices.
+export function syncDescriptionPrices(description, specs){
+ const prices=new Map();
+ for(const spec of specs||[]){
+  const label=String(spec.Cgds_Spec||'').match(/【([^】]+)】/)?.[1];
+  const price=Number(spec.Cgds_SPrice);
+  if(label&&price>0)prices.set(label,price);
+ }
+ return description.replace(/(【([^】]+)】)([\s\S]*?)(?=【|$)/g,(section,heading,label,body)=>{
+  const price=prices.get(label);
+  return price?heading+body.replace(/(優惠價\s*)[\d,]+(\s*元?)/g,(_,prefix,suffix)=>prefix+price+suffix):section;
+ });
+}
 export function parseMyship(html){
  const products=[];
  for(const match of html.matchAll(/data-product="([^"]+)"/g)){
@@ -12,7 +25,7 @@ export function parseMyship(html){
    const name=String(spec.Cgds_Spec||'').trim();if(!name)continue;
    const image=String(spec.Cgds_CgimImagePath||item.GoodsFirstImg||'');
    const photo=/^[\w.-]+$/.test(image)?'https://myship.7-11.com.tw/i/cgdm/GM2505137999911/'+image:'';
-   products.push({id:'myship-'+spec.Cgds_Id,name,cat:/優惠|團購/.test(name)?'組合優惠':'單包口味',price,orig:orig>price?orig:null,desc:/團購/.test(name)?'團購需求請先加 LINE 洽詢。':/優惠/.test(name)?'組合優惠，適合分享與囤貨。':'濕式肉感，選一包喜歡的口味。',detail:plainText(item.Cgdd_Product_Description),stock:Number(spec.Inventory)<=0?0:null,hot:false,isNew:false,active:true,specs:[],photos:photo?[photo]:[],source:'myship',sourceUrl:MYSHIP_URL,sourceStock:Math.max(0,Number(spec.Inventory)||0)});
+   products.push({id:'myship-'+spec.Cgds_Id,name,cat:/優惠|團購/.test(name)?'組合優惠':'單包口味',price,orig:orig>price?orig:null,desc:/團購/.test(name)?'團購需求請先加 LINE 洽詢。':/優惠/.test(name)?'組合優惠，適合分享與囤貨。':'濕式肉感，選一包喜歡的口味。',detail:syncDescriptionPrices(plainText(item.Cgdd_Product_Description),item.Spec),stock:Number(spec.Inventory)<=0?0:null,hot:false,isNew:false,active:true,specs:[],photos:photo?[photo]:[],source:'myship',sourceUrl:MYSHIP_URL,sourceStock:Math.max(0,Number(spec.Inventory)||0)});
   }
  }
  if(!products.length)throw Error('賣貨便未回傳可辨識商品');
