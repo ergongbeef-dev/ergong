@@ -260,16 +260,13 @@ function controlHeroVideo(){
  else video.pause();
 }
 function updateHeroVideoButton(){
- const button=document.querySelector('.hero-video__toggle'),host=document.querySelector('.hero-video');
- if(button){button.textContent=heroMotionPaused?'播放動畫':'暫停動畫';button.setAttribute('aria-pressed',String(heroMotionPaused));}
+ const host=document.querySelector('.hero-video');
  if(host)host.dataset.motion=heroMotionPaused?'paused':'playing';
 }
-function toggleHeroVideo(){heroMotionPaused=!heroMotionPaused;updateHeroVideoButton();controlHeroVideo();}
 function setupHeroVideo(){
  heroVideoObserver?.disconnect();
  const video=document.getElementById('hero-video');if(!video)return;
  video.muted=true;video.controls=false;
- const button=document.querySelector('.hero-video__toggle');if(button)button.hidden=false;
  updateHeroVideoButton();controlHeroVideo();
  heroVideoObserver=new IntersectionObserver(controlHeroVideo,{threshold:0});heroVideoObserver.observe(video);
 }
