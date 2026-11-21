@@ -33,7 +33,7 @@ npm test
 - ADMIN_PASSWORD：若需要啟用既有後台 API，設定強密碼。前台無後台入口，未設定時不可用預設密碼登入。
 - SHIP_FEE / FREE_SHIPPING_OVER：預設 250 / 1999。
 
-未設定 Google 或資料庫時禁止正式下單。原 Cloudflare D1 訂單仍在原服務，不會自動匯入或刪除。部署前需另行搬移經授權的資料。
+既有訂單 API 在未設定 Google 或資料庫時禁止寫入訂單；目前前台僅提供賣貨便連結與瀏覽器內的 LINE 草稿，不使用該 API。原 Cloudflare D1 訂單仍在原服務，不會自動匯入或刪除。部署前需另行搬移經授權的資料。
 
 ## 商品來源
 
@@ -43,7 +43,7 @@ npm test
 
 匯入儲存庫後選 Next.js，專案根目錄使用本目錄，建置 npm run build。設定以上環境變數後再發布。尚未設定 Git 作者、Git 遠端、Vercel 帳號或正式環境，因此本次沒有 commit、push 或部署。
 
-## Google 最小權限登入（取代 GIS 按鈕）
+## 舊版 Google 最小權限登入（後端保留，前台不再使用）
 
 正式 Next.js 入口使用 scripts/google-session.mjs 的 OAuth 2.0 authorization code flow。
 授權要求固定為 `scope=openid email`、`include_granted_scopes=false`、`access_type=online`。
@@ -69,7 +69,7 @@ Session Cookie 以 HMAC 簽章且有 HttpOnly、Secure、SameSite=Lax、__Host- 
 
 ## 人工接單與顧客備份
 
-目前結帳只在瀏覽器產生草稿，不呼叫 POST /api/orders，不自動清空購物車、不保存個資至瀏覽器儲存空間，也不將草稿送至資料庫。Google 登入保留，但下載草稿不包含 Google ID／Email。顧客可下載 UTF-8 TXT 或使用瀏覽器列印存 PDF，重新整理會清除暫存草稿。顧客需自行透過 LINE 傳送，店家在 LINE 收件、核對庫存金額後回覆確認。無集中訂單後台，也無法跨裝置查詢歷史訂單。下載檔案包含收件個資，須妥善保管。
+目前結帳只在瀏覽器產生草稿，不呼叫 POST /api/orders，不自動清空購物車、不保存個資至瀏覽器儲存空間，也不將草稿送至資料庫。前台不再要求 Google 登入，下載草稿不包含 Google ID／Email。顧客可下載 UTF-8 TXT 或使用瀏覽器列印存 PDF，重新整理會清除暫存草稿。顧客需自行透過 LINE 傳送，店家在 LINE 收件、核對庫存金額後回覆確認。無集中訂單後台，也無法跨裝置查詢歷史訂單。下載檔案包含收件個資，須妥善保管。
 
 
 ## 首頁預先產生與社群分享
@@ -80,3 +80,7 @@ Session Cookie 以 HMAC 簽章且有 HttpOnly、Secure、SameSite=Lax、__Host- 
 - 執行 `npm run image:share` 以既有商品照片及品牌角色重新製作 1200×630 分享圖。Open Graph / Twitter 中使用版本化圖片網址。
 - 各商品頁含 Product/Offer JSON-LD；首頁含 Organization。沒有加入未經確認的評價或評分，社群區僅連到官方 Instagram。
 - `npm test` 包含原始首頁內容、空商品骨架、HTML/JSON 跳脫、本地圖片及價格結構化資料驗證。發布前另執行 `npm run build`。
+
+## 結帳入口
+
+結帳頁以官方賣貨便賣場連結為主要入口，不附加本站購物車或個資；顧客在賣貨便自行登入及重選商品。亦保留免 Google 登入的 LINE 草稿流程，姓名、手機、IG、門市驗證仍有效，資料只留在目前頁面記憶體。

@@ -4,7 +4,6 @@ const SHOP_KEY = 'ergong:shopping:v3';
 let DB = null;
 let storageAvailable = true;
 let sourceSync=null;
-let googleBuyer=null,googleConfig=null;
 let adminToken = sessionStorage.getItem('ergong:admin') || '';
 
 function seed(){
@@ -216,7 +215,6 @@ function render({preserveScroll=true}={}){
   restoreCheckout();
   const filters=document.querySelector('.filters');if(filters)filters.scrollLeft=filterScroll;
   if(view==='admin') paintAdmin();
-  if(view==='checkout')prepareGoogleLogin();
   if(view==='home') startMarquee();
   setupHeroVideo();
   document.querySelectorAll('.flow-sheet').forEach(el=>el.tabIndex=-1);
@@ -455,11 +453,13 @@ function updateCartView(){
 function vCheckout(){
   if(!cart.length) return vCart();
   const st=subTotal(), sh=shipOf(st);
+  const myship=safeUrl(DB.settings.myshipUrl)||'https://myship.7-11.com.tw/general/detail/GM2505137999911';
   return `<section class="blk"><div class="wrap">
-    <div class="blk__hd"><h2>最後一步，把美味送到你身邊。</h2><p>7‑11 冷凍取貨・貨到付款</p></div>
+    <div class="blk__hd"><h2>選擇你的下單方式。</h2><p>7‑11 冷凍取貨・貨到付款</p></div>
+    <section class="myship-checkout panel" aria-label="賣貨便下單"><span class="section-label">直接在賣貨便下單</span><h3>有賣貨便帳號？到賣場繼續買。</h3><p>前往貳恭官方賣場，依賣貨便流程登入、選擇商品與取貨門市，再完成下單。</p><a class="btn btn--primary" id="checkout-myship" href="${esc(myship)}" target="_blank" rel="noopener noreferrer">前往賣貨便下單</a><p class="note">將在新分頁開啟。本站購物車與收件資料不會自動傳送，請在賣場重新選擇商品；價格、運費及訂單結果請依賣貨便頁面確認。</p></section>
     <div class="two">
       <div class="panel" style="padding:24px">
-        <div class="google-buyer"><span class="section-label">01 / 驗證下單帳號</span><h3>使用 Google 帳號登入</h3><p>登入後製作下單明細。本頁不將明細送到資料庫；請自行傳給店家確認。</p><div id="google-login-status" role="status">正在確認登入服務…</div><div id="google-signin-button"></div></div>
+        <div class="line-draft-intro"><span class="section-label">或使用 LINE 人工接單</span><h3>在這裡製作明細，再傳 LINE 確認。</h3><p>不需要 Google 登入。以下資料僅在目前頁面製作草稿，不會自動送出訂單或寄信。</p></div>
         <div class="field"><label for="f-name">收件人姓名</label><input id="f-name" autocomplete="name" placeholder="例：王小明"><small>請務必使用真實姓名。</small></div>
         <div class="field"><label for="f-tel">手機號碼</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxx"><small>請務必使用真實電話，方便取貨與聯絡。</small></div>
         <div class="field"><label for="f-ig">Instagram 帳號</label><input id="f-ig" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="31" placeholder="例：@your_account" required><small>方便店家聯絡與確認訂單，請填寫可搜尋的帳號。</small></div>
@@ -481,7 +481,7 @@ function vCheckout(){
           <label class="checkline"><input id="f-agree" type="checkbox">我確認以上收件資訊正確，並同意於收到通知後，至指定 7‑11 門市付款並取貨。</label>
         </div>
         <div id="ckErr" role="alert" aria-live="polite"></div>
-        <button class="btn btn--primary btn--full" id="submit-order" ${googleBuyer&&googleBuyer.expiresAt>Date.now()?'':'disabled'} onclick="submitOrder()">${googleBuyer?'產生下單明細':'請先登入 Google 製作明細'}</button>
+        <button class="btn btn--primary btn--full" id="submit-order" onclick="submitOrder()">產生 LINE 下單明細</button>
         <p style="font-size:0.78125rem;color:#6b5b4d;margin-top:10px">目前採人工接單。產生明細不代表已下單，請下載保留並自行傳給店家；收到店家回覆才成立。</p>
       </div>
       <div class="panel sum">
@@ -501,13 +501,12 @@ function toggleShip(){
 let lastOrder=null;
 async function submitOrder(){
   if(!cart.length) return;
-  if(!googleBuyer||googleBuyer.expiresAt<=Date.now()){googleBuyer=null;prepareGoogleLogin();toast('請先登入 Google 帳號。');return;}
   const g=id=>document.getElementById(id).value.trim();
   const ship='超商冷凍取貨';
   const instagram=g('f-ig').replace(/^@/,'');
   const agree=document.getElementById('f-agree')?.checked;
   const igOk=/^[A-Za-z0-9._]{1,30}$/.test(instagram);
-  const o={name:g('f-name'),tel:g('f-tel'),mail:googleBuyer.email,instagram,ship,pay:'超商貨到付款',
+  const o={name:g('f-name'),tel:g('f-tel'),mail:'',instagram,ship,pay:'超商貨到付款',
     addr:g('f-store'),note:'',agree};
   const miss=[];
   if(!o.name) miss.push('收件人姓名');
@@ -589,8 +588,8 @@ function vAbout(){
     </div>
   </div></section>`;
 }
-function vTerms(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>購買須知</h2><h4>人工 LINE 接單</h4><p>本頁產生的是下單草稿，不代表訂單成立，也不會自動扣款、寄信或送入訂單資料庫。請下載或複製明細，自行傳至官方 LINE；經店家回覆確認商品、金額與配送安排後，訂單才成立。</p><h4>價格與運費</h4><p>商品卡與商品說明的優惠價依賣貨便同步售價顯示。運費、免運條件與合計請見購物車及草稿；若有價格疑問，請在確認前透過 LINE 詢問。</p><h4>付款與配送</h4><p>目前採超商冷凍取貨、貨到付款。請填寫正確的收件姓名、手機與取貨門市；實際製作、出貨及到貨時間由店家於 LINE 確認。</p><h4>保存與過敏原</h4><p>商品保存期限、方式、成分與過敏原請依各商品說明及實際包裝標示。收到後請依標示妥善保存，開封後儘速食用。</p><h4>退換貨與客服</h4><p>若收到破損、變質或漏寄商品，請保留包裝與照片，儘速透過官方 LINE 聯繫。退換貨依實際商品條件與適用法令辦理。需要統編或其他協助，請於確認訂單時提出。</p></div></section>";}
-function vPrivacy(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>隱私權政策</h2><h4>資料處理者與聯絡方式</h4><p>本網站由貳恭 ER GONG 經營。資料相關問題或權利申請，請透過官方 LINE（@634xhfoj）聯繫。更新日期：2026 年 11 月 21 日。</p><h4>資料類別與用途</h4><p>Google 登入僅要求 openid email，以 sub 作為唯一帳號識別，並使用 Email 顯示登入狀態；不儲存 Google 姓名或頭像，不讀取 Gmail、聯絡人或密碼。下單表單使用收件姓名、手機、IG 帳號、取貨門市、訂購品項及備註，在瀏覽器製作明細，供你自行傳送給店家確認、聯繫與安排取貨。</p><h4>草稿與儲存方式</h4><p>姓名、手機、IG、門市及備註僅留在目前頁面記憶體，不寫入網站訂單資料庫或瀏覽器長期儲存，也不自動寄信。重新整理或關閉頁面後須重新填寫。購物車及收藏會保存在本機 localStorage，直到你清除網站資料。下載的 TXT、PDF 與剪貼簿內容由你自行保管，關閉頁面不會刪除這些副本。</p><h4>登入 Cookie 與保存期間</h4><p>網站使用 HttpOnly、Secure、SameSite Cookie 維持登入。登入 session 含 Google sub、Email 與到期時間，最長一小時；登入驗證用 Cookie 最長十分鐘。登出會清除登入 Cookie，既有到期 Cookie 由瀏覽器處理。網站不另建立會員個資資料庫。</p><h4>資料對象、地區與外部服務</h4><p>草稿不會自動傳送給 LINE 或店家。你自行傳送後，LINE 與店家會處理所提供的內容，用於人工接單與客服；配送時會使用必要的收件與門市資訊。LINE 訊息及交易紀錄依服務政策、履約需求與適用法令保存，相關刪除需求請聯繫店家。Google 登入、Google Fonts 及 Vercel 主機會因提供服務接收 IP、請求時間、瀏覽器等連線資訊，可能於臺灣境外處理，依各服務政策管理；網站不會將表單個資放入網址或主動寫入應用程式日誌。</p><h4>你的權利與選擇</h4><p>你可透過官方 LINE 請求查詢、閱覽、取得複本、補充更正、停止蒐集處理利用或刪除個人資料；店家將核對必要身分並依適用法令辦理。你可清除網站資料或登出，亦可在 Google 帳戶撤銷授權。不提供登入及必要收件資料時，無法使用網站製作完整下單明細，可先以 LINE 詢問。請勿在備註填寫身分證、信用卡等無關資料。</p></div></section>";}
+function vTerms(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>購買須知</h2><h4>賣貨便下單</h4><p>可從結帳頁前往官方賣貨便賣場，依該平台流程登入及下單。本站購物車不會自動帶入，請在賣場重新選擇商品；價格、運費、付款與訂單結果依賣貨便頁面及店家確認辦理。</p><h4>人工 LINE 接單</h4><p>本頁產生的是下單草稿，不代表訂單成立，也不會自動扣款、寄信或送入訂單資料庫。請下載或複製明細，自行傳至官方 LINE；經店家回覆確認商品、金額與配送安排後，訂單才成立。</p><h4>價格與運費</h4><p>商品卡與商品說明的優惠價依賣貨便同步售價顯示。運費、免運條件與合計請見購物車及草稿；若有價格疑問，請在確認前透過 LINE 詢問。</p><h4>付款與配送</h4><p>目前採超商冷凍取貨、貨到付款。請填寫正確的收件姓名、手機與取貨門市；實際製作、出貨及到貨時間由店家於 LINE 確認。</p><h4>保存與過敏原</h4><p>商品保存期限、方式、成分與過敏原請依各商品說明及實際包裝標示。收到後請依標示妥善保存，開封後儘速食用。</p><h4>退換貨與客服</h4><p>若收到破損、變質或漏寄商品，請保留包裝與照片，儘速透過官方 LINE 聯繫。退換貨依實際商品條件與適用法令辦理。需要統編或其他協助，請於確認訂單時提出。</p></div></section>";}
+function vPrivacy(){return "<section class=\"blk\"><div class=\"wrap doc\"><h2>隱私權政策</h2><h4>資料處理者與聯絡方式</h4><p>本網站由貳恭 ER GONG 經營。資料相關問題或權利申請，請透過官方 LINE（@634xhfoj）聯繫。更新日期：2026 年 11 月 21 日。</p><h4>資料類別與用途</h4><p>目前的網站下單入口不需 Google 登入，也不讀取賣貨便帳號資料。下單表單使用收件姓名、手機、IG 帳號、取貨門市、訂購品項及備註，在瀏覽器製作明細，供你自行傳送給店家確認、聯繫與安排取貨。</p><h4>草稿與儲存方式</h4><p>姓名、手機、IG、門市及備註僅留在目前頁面記憶體，不寫入網站訂單資料庫或瀏覽器長期儲存，也不自動寄信。重新整理或關閉頁面後須重新填寫。購物車及收藏會保存在本機 localStorage，直到你清除網站資料。下載的 TXT、PDF 與剪貼簿內容由你自行保管，關閉頁面不會刪除這些副本。</p><h4>瀏覽器資料與既有登入 Cookie</h4><p>目前不要求登入即可製作 LINE 下單草稿。若曾使用先前的 Google 登入流程，既有 HttpOnly、Secure、SameSite session Cookie 最長一小時到期，登入驗證 Cookie 最長十分鐘；也可於瀏覽器清除本站 Cookie。網站不另建立會員個資資料庫。</p><h4>賣貨便外部下單</h4><p>點選賣貨便連結後會前往 7-ELEVEN 賣貨便，由該服務依其政策處理登入、收件、付款及訂單資料。本站不會自動帶入購物車、姓名、手機、IG 或門市，也不取得賣貨便的帳號、密碼或登入狀態。</p><h4>資料對象、地區與外部服務</h4><p>草稿不會自動傳送給 LINE 或店家。你自行傳送後，LINE 與店家會處理所提供的內容，用於人工接單與客服；配送時會使用必要的收件與門市資訊。LINE 訊息及交易紀錄依服務政策、履約需求與適用法令保存，相關刪除需求請聯繫店家。Google Fonts 及 Vercel 主機會因提供服務接收 IP、請求時間、瀏覽器等連線資訊，可能於臺灣境外處理，依各服務政策管理；網站不會將表單個資放入網址或主動寫入應用程式日誌。</p><h4>你的權利與選擇</h4><p>你可透過官方 LINE 請求查詢、閱覽、取得複本、補充更正、停止蒐集處理利用或刪除個人資料；店家將核對必要身分並依適用法令辦理。你可清除網站資料，曾使用 Google 登入者亦可在 Google 帳戶撤銷先前授權。不提供必要收件資料時，無法製作完整 LINE 下單明細，可先以 LINE 詢問。請勿在備註填寫身分證、信用卡等無關資料。</p></div></section>";}
 
 /* ---------- 搜尋 ---------- */
 function openSearch(){
@@ -925,15 +924,3 @@ function readRoute(){
 
 document.addEventListener('keydown',event=>{if(event.key!=='Tab'||modalHost.open)return;const sheet=document.querySelector('.flow-sheet');if(!sheet)return;const items=[...sheet.querySelectorAll('button:not([disabled]),a[href],input,select,textarea,[tabindex="0"]')].filter(el=>el.getClientRects().length);if(!items.length)return;const first=items[0],last=items[items.length-1];if(event.shiftKey&&(document.activeElement===first||!sheet.contains(document.activeElement))){event.preventDefault();last.focus();}else if(!event.shiftKey&&(document.activeElement===last||!sheet.contains(document.activeElement))){event.preventDefault();first.focus();}});
 setInterval(()=>{if(!document.hidden&&view==='home')refreshCatalog();},300000);
-
-async function prepareGoogleLogin(){
- const status=document.getElementById('google-login-status'),button=document.getElementById('submit-order'),host=document.getElementById('google-signin-button');if(!status||!button||!host)return;
- button.disabled=true;button.textContent='請先登入 Google 製作明細';host.replaceChildren();
- try{
-  googleConfig=await api('/api/auth/config');googleBuyer=googleConfig.buyer;
-  if(!googleConfig.enabled){status.textContent='Google 登入設定更新中，暫時無法登入下單。';return;}
-  if(googleBuyer&&googleBuyer.expiresAt>Date.now()){status.textContent='已驗證：'+googleBuyer.email;button.disabled=false;button.textContent='產生下單明細';const logout=document.createElement('button');logout.className='btn';logout.textContent='登出 Google 帳號';logout.onclick=async()=>{await api('/api/auth/logout',{method:'POST',body:{}});googleBuyer=null;prepareGoogleLogin();};host.append(logout);return;}
-  googleBuyer=null;status.textContent=new URLSearchParams(location.search).get('login')==='failed'?'Google 登入失敗，請重試。':'只要求 Google 帳號識別碼與 Email，不儲存 Google 姓名或頭像。';
-  const link=document.createElement('a');link.href='/api/auth/start';link.className='btn';link.textContent='使用 Google 帳戶登入';host.append(link);
- }catch{status.textContent='Google 登入暫時無法使用，請稍後重試。';}
-}

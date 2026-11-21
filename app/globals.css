@@ -453,3 +453,5 @@ body.flow-open{overflow:hidden}.flow-backdrop{position:fixed;inset:0;background:
 @media(min-width:601px) and (max-width:860px){.hero__in{display:grid;grid-template-columns:1fr 1fr;gap:24px}.hero-video{width:min(100%,300px)}}
 @media(max-width:600px){.hero__in{display:flex;flex-direction:column;gap:24px;padding-top:24px}.hero-video{order:-1;width:min(100%,270px)}.hero__in>.bubble{width:100%;margin:0}.hero-video__toggle{margin-top:12px}}
 @media(prefers-reduced-motion:reduce){.hero-video:not([data-motion="playing"]) video{visibility:hidden}.hero-video:not([data-motion="playing"]) .hero-video__still{display:block}}
+
+.myship-checkout{padding:24px;margin-bottom:28px;border:3px solid var(--ink);background:#f8da72}.myship-checkout h3,.line-draft-intro h3{font-size:1.25rem;margin:8px 0 12px}.myship-checkout p,.line-draft-intro p{line-height:1.8}.myship-checkout .btn{margin:16px 0 8px}.line-draft-intro{margin-bottom:24px}.myship-checkout .note{font-size:.875rem;margin-top:8px}@media(max-width:600px){.myship-checkout{padding:20px}.myship-checkout .btn{width:100%}}
