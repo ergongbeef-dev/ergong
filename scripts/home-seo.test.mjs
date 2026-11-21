@@ -10,7 +10,7 @@ import {parseMyship} from './myship-source.mjs';
 test('initial HTML contains main content and crawlable products without API or browser JS',()=>{
  const html=serverHome({products:snapshot.products,settings});
  for(const text of ['今晚的快樂','brand-story','how-to-order','id="faq"','全部商品','/products/myship-','@ergong_beef.ig'])assert.ok(html.includes(text),text);
- assert.ok(!html.includes('好肉，值得等一下'));assert.match(html,/BIG FLAVOR\. <br>GOOD MOOD\./);
+ assert.ok(!html.includes('好肉，值得等一下'));assert.match(html,/ergong-hero-v1\.mp4/);assert.match(html,/poster="\/media\/ergong-hero-poster-v1\.webp"/);
 });
 test('missing catalog shows skeletons within products while preserving brand and FAQ',()=>{
  const html=serverHome({products:[],settings});

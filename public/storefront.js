@@ -218,6 +218,7 @@ function render({preserveScroll=true}={}){
   if(view==='admin') paintAdmin();
   if(view==='checkout')prepareGoogleLogin();
   if(view==='home') startMarquee();
+  setupHeroVideo();
   document.querySelectorAll('.flow-sheet').forEach(el=>el.tabIndex=-1);
   if(preserveScroll)window.scrollTo({top:scrollY,behavior:'instant'});
 }
@@ -249,6 +250,31 @@ function toggleFav(e,id){
   const p=DB.products.find(p=>p.id===id),selected=favs.includes(id);
   document.querySelectorAll('[data-favorite-id]').forEach(button=>{if(button.dataset.favoriteId===id){button.setAttribute('aria-pressed',String(selected));button.setAttribute('aria-label',(selected?'取消收藏':'收藏')+p.name);}});
 }
+
+let heroMotionPaused=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let heroVideoObserver;
+function controlHeroVideo(){
+ const video=document.getElementById('hero-video');if(!video)return;
+ const visible=video.getBoundingClientRect().bottom>0&&video.getBoundingClientRect().top<innerHeight;
+ if(!heroMotionPaused&&view==='home'&&!document.hidden&&visible){video.play().catch(()=>{heroMotionPaused=true;updateHeroVideoButton();});}
+ else video.pause();
+}
+function updateHeroVideoButton(){
+ const button=document.querySelector('.hero-video__toggle'),host=document.querySelector('.hero-video');
+ if(button){button.textContent=heroMotionPaused?'播放動畫':'暫停動畫';button.setAttribute('aria-pressed',String(heroMotionPaused));}
+ if(host)host.dataset.motion=heroMotionPaused?'paused':'playing';
+}
+function toggleHeroVideo(){heroMotionPaused=!heroMotionPaused;updateHeroVideoButton();controlHeroVideo();}
+function setupHeroVideo(){
+ heroVideoObserver?.disconnect();
+ const video=document.getElementById('hero-video');if(!video)return;
+ video.muted=true;video.controls=false;
+ const button=document.querySelector('.hero-video__toggle');if(button)button.hidden=false;
+ updateHeroVideoButton();controlHeroVideo();
+ heroVideoObserver=new IntersectionObserver(controlHeroVideo,{threshold:0});heroVideoObserver.observe(video);
+}
+document.addEventListener('visibilitychange',controlHeroVideo);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',event=>{heroMotionPaused=event.matches;updateHeroVideoButton();controlHeroVideo();});
 
 let renderHomeContent;
 function vHome(){return renderHomeContent({settings:DB.settings,catalogHtml:!DB.products.length&&storageAvailable?null:vShop().replace('<section class="blk"><div class="wrap">','<div class="shop-inner">').replace('</div></section>','</div>')});}

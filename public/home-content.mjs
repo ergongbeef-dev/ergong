@@ -6,11 +6,9 @@ export const catalogSkeletonHtml='<div class="shop-inner"><h2>全部商品</h2><
 export function renderHome({settings:s,catalogHtml,mascotHtml:character=mascotHtml}){
  return `<div class="hero" id="top"><div class="hero__in">
   <div class="bubble"><span class="eyebrow en">GOOD MEAT. GOOD MOOD.</span><h1><em>貳恭 ER GONG</em>今晚的快樂，<br>來點<span>有肉的。</span></h1><p>咬得到肉的濕式牛肉乾。<br>一包配劇、一包配酒，好好享受每一口。</p><div class="hero__cta"><a class="btn btn--primary" href="#products" onclick="if(window.jumpSection){event.preventDefault();jumpSection('products')}">挑選我的口味</a><a class="btn" href="#how-to-order" onclick="if(window.jumpSection){event.preventDefault();jumpSection('how-to-order')}">怎麼買？</a></div><div class="hero-caption">濕潤肉感 / 濃郁醬香 / 真空包裝</div></div>
-  <div class="hero-art hero-art--reviews" aria-label="貳恭品牌風味介紹">
-    <div class="review-heading"><span class="en">BIG FLAVOR. <br>GOOD MOOD.</span></div>
-    <article class="hero-review hero-review--one"><span class="flavor-kicker">原味派 / ORIGINAL</span><h3>有肉感，<br>才過癮。</h3><p>濕潤肉感 × 濃郁醬香<br>給追劇時光，一點好滋味。</p></article>
-    <article class="hero-review hero-review--two"><span class="flavor-kicker">辣味控 / SPICY</span><h3>來點辣，<br>更對味。</h3><p>一包配飲料，一包和朋友分享。</p></article>
-    ${character}<span class="review-spark" aria-hidden="true">✦</span>
+  <div class="hero-video" aria-label="貳恭品牌動畫">
+    <div class="hero-video__frame"><video id="hero-video" width="720" height="960" autoplay muted loop playsinline controls preload="metadata" poster="/media/ergong-hero-poster-v1.webp" aria-label="貳恭品牌角色拿著牛肉乾，追劇就該吃"><source src="/media/ergong-hero-v1.mp4" type="video/mp4"><img src="/media/ergong-hero-poster-v1.webp" alt="貳恭品牌角色與濕式牛肉乾：追劇就該吃" width="720" height="960"></video><img class="hero-video__still" src="/media/ergong-hero-poster-v1.webp" alt="貳恭品牌角色與濕式牛肉乾：追劇就該吃" width="720" height="960"></div>
+    <button class="hero-video__toggle" type="button" onclick="toggleHeroVideo()" aria-controls="hero-video" aria-pressed="false" hidden>暫停動畫</button>
   </div>
  </div></div>
  <div class="benefit-strip"><span>7‑11 冷凍取貨</span><span>貨到付款</span><span>滿 <span data-free-shipping>${NT(s.freeOver)}</span> 免運</span></div>
